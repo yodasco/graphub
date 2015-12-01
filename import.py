@@ -7,6 +7,8 @@ from py2neo import Node, Relationship
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='File to import', required=True)
 parser.add_argument('--drop', help='Drop data first?', action='store_true')
+parser.add_argument('--forks', help='Handle forks?', action='store_true')
+parser.add_argument('--watches', help='Handle watches (stars)?', action='store_true')
 parser.set_defaults(drop=False)
 args = parser.parse_args()
 
@@ -23,13 +25,16 @@ def main(file_name):
   with gzip.open(file_name, 'rb') as f:
     for line in f.readlines():
       event = json.loads(line)
-      func = {
+      funcs = {
         'RepositoryEvent': create_repository,
         'PullRequestEvent': handle_pull_request,
         'MemberEvent': handle_member,
-        'WatchEvent': handle_watch,
-        'ForkEvent': handle_fork,
-      }.get(event['type'])
+      }
+      if args.forks:
+        funcs['ForkEvent'] = handle_fork
+      if args.watches:
+        funcs['WatchEvent'] = handle_watch
+      func = funcs.get(event['type'])
       if func:
         func(event)
 
