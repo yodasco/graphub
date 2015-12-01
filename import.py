@@ -29,34 +29,46 @@ def main(file_name):
         handle_pull_request(event)
       if event['type'] == 'MemberEvent':
         handle_member(event)
+      if event['type'] == 'WatchEvent':
+        handle_watch(event)
+
+def add_user(user):
+  node = graph.merge_one('User', 'id', user['id'])
+  node['login'] = user['login']
+  return node
+
+def add_repo(repo):
+  node = graph.merge_one('Repository', 'id', repo['id'])
+  node['full_name'] = repo['full_name'] if 'full_name' in repo  else repo['name']
+  return node
+
+def log(event):
+  print event['type'], event['id'], event['created_at']
 
 def create_repository(event):
   print "==== create_repository not implemented yet" + event
+
+def handle_watch(event):
+  # print json.dumps(event, indent=2)
+  payload = event['payload']
+  if payload['action'] == 'started':
+    log(event)
+    actor = add_user(event['actor'])
+    repo = add_repo(event['repo'])
+    graph.create_unique(Relationship(actor, "WATCHES", repo))
+    graph.push(actor, repo)
 
 def handle_member(event):
   # print json.dumps(event, indent=2)
   payload = event['payload']
   if payload['action'] == 'added':
-    print event['type'], event['id']
-    member = payload['member']
-    print 'Member', member['id'], member['login']
-    member_node = graph.merge_one('User', 'id', member['id'])
-    member_node.properties['login'] = member['login']
-
-    repo = event['repo']
-    print 'Repository', repo['id'], repo['name']
-    repo_node = graph.merge_one('Repository', 'id', repo['id'])
-    repo_node.properties['full_name'] = repo['name']
-
-    actor = event['actor']
-    print 'Owner', actor['id'], actor['login']
-    actor_node = graph.merge_one('User', 'id', actor['id'])
-    actor_node.properties['login'] = actor['login']
-
-    graph.create_unique(Relationship(member_node, "MEMBER", repo_node))
-    graph.create_unique(Relationship(actor_node, "MEMBER", repo_node))
-
-    graph.push(repo_node, member_node, actor_node)
+    log(event)
+    member = add_user(payload['member'])
+    repo = add_repo(event['repo'])
+    actor = add_user(event['actor'])
+    graph.create_unique(Relationship(member, "MEMBER", repo))
+    graph.create_unique(Relationship(actor, "MEMBER", repo))
+    graph.push(repo, member, actor)
 
 
 def handle_pull_request(event):
@@ -64,31 +76,21 @@ def handle_pull_request(event):
   pull_request = payload['pull_request']
   if (payload['action'] == 'closed' and pull_request['merged'] == True):
     # print json.dumps(event, indent=2)
-    print event['type'], event['id']
-    repo = pull_request['base']['repo']
-    print 'Repository', repo['id'], repo['full_name']
-    repo_node = graph.merge_one("Repository", "id", repo['id'])
-    repo_node.properties['full_name'] = repo['full_name']
+    log(event)
+    repo = add_repo(pull_request['base']['repo'])
 
     contributor = pull_request['user']
     if contributor is not None:
-      print 'Contributor', contributor['id'], contributor['login']
-      contributor_node = graph.merge_one("User", "id", contributor['id'])
-      contributor_node.properties['login'] = contributor['login']
+      contributor = add_user(contributor)
+      graph.create_unique(Relationship(contributor, "CONTRIBUTED", repo))
 
-      graph.create_unique(Relationship(contributor_node, "CONTRIBUTED", repo_node))
-
-    actor = event['actor']
-    print 'Actor', actor['id'], actor['login']
-    actor_node = graph.merge_one("User", "id", actor['id'])
-    actor_node.properties['login'] = actor['login']
-
-    graph.create_unique(Relationship(actor_node, "MEMBER", repo_node))
+    actor = add_user(event['actor'])
+    graph.create_unique(Relationship(actor, "MEMBER", repo))
 
     if contributor is None:
-      graph.push(repo_node, actor_node)
+      graph.push(repo, actor)
     else:
-      graph.push(repo_node, actor_node, contributor_node)
+      graph.push(repo, actor, contributor)
 
 
 main(args.file);
