@@ -23,14 +23,15 @@ def main(file_name):
   with gzip.open(file_name, 'rb') as f:
     for line in f.readlines():
       event = json.loads(line)
-      if event['type'] == 'RepositoryEvent':
-        create_repository(event)
-      if event['type'] == 'PullRequestEvent':
-        handle_pull_request(event)
-      if event['type'] == 'MemberEvent':
-        handle_member(event)
-      if event['type'] == 'WatchEvent':
-        handle_watch(event)
+      func = {
+        'RepositoryEvent': create_repository,
+        'PullRequestEvent': handle_pull_request,
+        'MemberEvent': handle_member,
+        'WatchEvent': handle_watch,
+        'ForkEvent': handle_fork,
+      }.get(event['type'])
+      if func:
+        func(event)
 
 def add_user(user):
   node = graph.merge_one('User', 'id', user['id'])
@@ -47,6 +48,17 @@ def log(event):
 
 def create_repository(event):
   print "==== create_repository not implemented yet" + event
+
+def handle_fork(event):
+  # print json.dumps(event, indent=2)
+  payload = event['payload']
+  log(event)
+  repo = add_repo(event['repo'])
+  forkee = add_repo(payload['forkee'])
+  forkee_owner = add_user(payload['forkee']['owner'])
+  graph.create_unique(Relationship(forkee_owner, "CONTRIBUTED", forkee))
+  graph.create_unique(Relationship(forkee, "FORKED", repo))
+  graph.push(repo, forkee, forkee_owner)
 
 def handle_watch(event):
   # print json.dumps(event, indent=2)
