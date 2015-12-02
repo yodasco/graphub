@@ -164,8 +164,9 @@ def handle_pull_request_legacy(event):
       if contributor:
         graph.create_unique(Relationship(contributor, "CONTRIBUTED", repo))
 
-    actor = add_user(actor)
-    graph.create_unique(Relationship(actor, "MEMBER", repo))
+    if 'login' in actor:
+      actor = add_user(actor)
+      graph.create_unique(Relationship(actor, "MEMBER", repo))
 
 def get_pull_request(pr_id):
   return graph.find_one('PullRequest', 'id', pr_id)
@@ -207,7 +208,10 @@ def load_from_date(date):
   for h in generate_hours(date, datetime.datetime.today()):
     print "=== Loading:  ", h
     download_and_load_hour(h)
-    graph.merge_one('ProcessingStatus', 'last_processed_date', date)
+    status = graph.merge_one('ProcessingStatus', 'last_processed_date',
+                             'last_processed_date')
+    status.properties['date'] = h
+    status.push()
 
 def setup_schema():
   def constraint(label, key):
@@ -235,8 +239,8 @@ if args.download_from_date:
 if args.cont:
   status = graph.find_one('ProcessingStatus')
   if status:
-    date = status.properties['last_processed_date']
-    date = datetime.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+    date = status.properties['date']
+    date = datetime.datetime.strptime(date, '%Y-%m-%d-%H')
   else:
     date = datetime.datetime(2011, 2, 12)
 
