@@ -115,7 +115,7 @@ def handle_member(event):
   if payload['action'] == 'added':
     log(event)
     # print json.dumps(event, indent=2)
-    repo = add_repo(event['repo'])
+    repo = add_repo(event.get('repo') or event.get('repository'))
     member = add_user(payload['member'])
     graph.create_unique(Relationship(member, "MEMBER", repo))
     if 'login' in event['actor']:
