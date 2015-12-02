@@ -8,30 +8,23 @@ from py2neo import Graph
 from py2neo import Node, Relationship
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--drop', help='Drop data first?', action='store_true')
+def valid_date(s):
+  try:
+    return datetime.datetime.strptime(s, "%Y-%m-%d")
+  except ValueError:
+    msg = "Not a valid date: '{0}'.".format(s)
+    raise argparse.ArgumentTypeError(msg)
+parser.add_argument('--drop', help='Drop data first?', action='store_true', default=False)
 parser.add_argument('--file', help='File to import')
 parser.add_argument('--forks', help='Handle forks?', action='store_true')
 parser.add_argument('--watches', help='Handle watches (stars)?', action='store_true')
-parser.set_defaults(drop=False)
+parser.add_argument('--cont', help='Continue download from last place?', action='store_true')
+parser.add_argument('--download_from_date',
+                    help='Start download from date. format YYYY-MM-DD',
+                    type=valid_date)
+
 args = parser.parse_args()
 
-graph = Graph()
-try:
-  graph.schema.create_uniqueness_constraint("Repository", "full_name")
-except:
-  pass
-try:
-  graph.schema.create_uniqueness_constraint("User", "login")
-except:
-  pass
-try:
-  graph.schema.create_uniqueness_constraint("PullRequest", "id")
-except:
-  pass
-
-if args.drop:
-  print '!!! DROPPING DATABASE !!!'
-  graph.delete_all();
 
 def load_from_buffer(buffer):
   with gzip.GzipFile(fileobj=buffer, mode='rb') as f:
@@ -87,7 +80,7 @@ def add_repo(repo):
   return graph.merge_one('Repository', 'full_name', name)
 
 def log(event):
-  print event['type'], event['id'], event['created_at']
+  print event['type'], event.get('id'), event['created_at']
 
 def create_repository(event):
   print "==== create_repository not implemented yet" + event
@@ -122,16 +115,17 @@ def handle_member(event):
   if payload['action'] == 'added':
     log(event)
     # print json.dumps(event, indent=2)
-    member = add_user(payload['member'])
     repo = add_repo(event['repo'])
-    actor = add_user(event['actor'])
+    member = add_user(payload['member'])
     graph.create_unique(Relationship(member, "MEMBER", repo))
-    graph.create_unique(Relationship(actor, "MEMBER", repo))
+    if 'login' in event['actor']:
+      actor = add_user(event['actor'])
+      graph.create_unique(Relationship(actor, "MEMBER", repo))
 
 
 def handle_pull_request(event):
   payload = event['payload']
-  legacy_api = type(payload['actor']) == unicode
+  legacy_api =  type(payload.get('actor')) == unicode
   if legacy_api:
     handle_pull_request_legacy(event)
   else:
@@ -213,8 +207,37 @@ def load_from_date(date):
   for h in generate_hours(date, datetime.datetime.today()):
     print "=== Loading:  ", h
     download_and_load_hour(h)
+    graph.merge_one('ProcessingStatus', 'last_processed_date', date)
+
+def setup_schema():
+  def constraint(label, key):
+    try:
+      graph.schema.create_uniqueness_constraint(label, key)
+    except:
+      pass
+  constraint("Repository", "full_name")
+  constraint("User", "login")
+  constraint("PullRequest", "id")
+  constraint('ProcessingStatus', 'last_processed_date')
+
+graph = Graph()
+
+if args.drop:
+  print '!!! DROPPING DATABASE !!!'
+  graph.delete_all();
+
+setup_schema();
 
 if args.file:
   load_from_file(args.file)
-else:
-  load_from_date(datetime.datetime(2015,1,1))
+if args.download_from_date:
+  load_from_date(args.download_from_date)
+if args.cont:
+  status = graph.find_one('ProcessingStatus')
+  if status:
+    date = status.properties['last_processed_date']
+    date = datetime.datetime.strptime(date, '%Y-%m-%dT%H:%M:%S')
+  else:
+    date = datetime.datetime(2011, 2, 12)
+
+  load_from_date(date)
