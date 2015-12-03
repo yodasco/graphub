@@ -54,6 +54,7 @@ def process_file_contents(f):
       'MemberEvent': handle_member,
       'ForkEvent': handle_fork,
       'WatchEvent': handle_watch,
+      'PushEvent': handle_push,
     }
     # Check out optional event hanlers
     if not args.forks:
@@ -95,7 +96,7 @@ def handle_fork(event):
     repo = add_repo(event['repo'])
     forkee = add_repo(payload['forkee'])
     forkee_owner = add_user(payload['forkee']['owner'])
-    graph.create_unique(Relationship(forkee_owner, "CONTRIBUTED", forkee))
+    graph.create_unique(Relationship(forkee_owner, "CONTRIBUTOR", forkee))
     graph.create_unique(Relationship(forkee, "FORKED", repo))
 
 def handle_fork_legacy(event):
@@ -122,6 +123,12 @@ def handle_member(event):
       actor = add_user(event['actor'])
       graph.create_unique(Relationship(actor, "MEMBER", repo))
 
+def handle_push(event):
+  payload = event['payload']
+  log(event)
+  pusher = add_user(event['actor'])
+  repo = add_repo(event['repo'])
+  graph.create_unique(Relationship(pusher, "CONTRIBUTOR", repo))
 
 def handle_pull_request(event):
   payload = event['payload']
@@ -139,7 +146,7 @@ def handle_pull_request(event):
       contributor = pull_request['user']
       if contributor is not None:
         contributor = add_user(contributor)
-        graph.create_unique(Relationship(contributor, "CONTRIBUTED", repo))
+        graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
 
       actor = add_user(actor)
       graph.create_unique(Relationship(actor, "MEMBER", repo))
@@ -150,9 +157,10 @@ def handle_pull_request_legacy(event):
   pr_id = '%s/pulls/%s' % (event['repo']['name'], payload['number'])
   if payload['action'] == 'opened':
     pr = graph.merge_one('PullRequest', 'id', pr_id)
-    puller = add_user(actor)
-    pr.properties['puller'] = actor['login']
-    graph.push(pr)
+    if 'login' in actor:
+      puller = add_user(actor)
+      pr.properties['puller'] = actor['login']
+      graph.push(pr)
   if payload['action'] == 'closed':
     log(event)
     repo = add_repo(event['repo'])
@@ -162,7 +170,7 @@ def handle_pull_request_legacy(event):
       contributor = get_user(pr.properties['puller'])
       graph.delete(pr)
       if contributor:
-        graph.create_unique(Relationship(contributor, "CONTRIBUTED", repo))
+        graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
 
     if 'login' in actor:
       actor = add_user(actor)
@@ -182,7 +190,7 @@ def handle_pull_request_v2(event):
     contributor = pull_request['user']
     if contributor is not None:
       contributor = add_user(contributor)
-      graph.create_unique(Relationship(contributor, "CONTRIBUTED", repo))
+      graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
 
     actor = add_user(event['actor'])
     graph.create_unique(Relationship(actor, "MEMBER", repo))
