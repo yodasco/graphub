@@ -6,6 +6,8 @@ import urllib2
 import StringIO
 from py2neo import Graph
 from py2neo import Node, Relationship
+from functools import wraps
+from time import time
 
 parser = argparse.ArgumentParser()
 def valid_date(s):
@@ -22,9 +24,20 @@ parser.add_argument('--cont', help='Continue download from last place?', action=
 parser.add_argument('--download_from_date',
                     help='Start download from date. format YYYY-MM-DD',
                     type=valid_date)
+parser.add_argument('--log', help='Log verbose?', action='store_true')
 
 args = parser.parse_args()
 
+
+def timeit(f):
+  @wraps(f)
+  def wrap(*args, **kw):
+    ts = time()
+    result = f(*args, **kw)
+    te = time()
+    print '%r took: %2.4f sec' % (f.__name__, te-ts)
+    return result
+  return wrap
 
 def load_from_buffer(buffer):
   with gzip.GzipFile(fileobj=buffer, mode='rb') as f:
@@ -38,6 +51,7 @@ def load_from_file(file_name):
     with open(file_name, 'rb') as f:
       process_file_contents(f)
 
+@timeit
 def process_file_contents(f):
   line_number = 0
   for line in f.readlines():
@@ -66,22 +80,56 @@ def process_file_contents(f):
     if func:
       func(event)
 
+def get_user_login(user):
+  return user if type(user) == unicode else user['login']
+
+USERS = dict()
 def add_user(user):
-  if type(user) == unicode:
-    login = user
-  else:
-    login = user['login']
-  return graph.merge_one('User', 'login', login)
+  login = get_user_login(user)
+  user_node = USERS.get(login)
+  if user_node is None:
+    user_node = graph.merge_one('User', 'login', login)
+    USERS[login] = user_node
+  return user_node
 
 def get_user(login):
-  return graph.find_one('User', 'login', login)
+  return USERS.get(login) or graph.find_one('User', 'login', login)
 
+def get_repo_full_name(repo):
+  return repo['full_name'] if 'full_name' in repo else repo['name']
+
+REPOS = dict()
 def add_repo(repo):
-  name = repo['full_name'] if 'full_name' in repo else repo['name']
-  return graph.merge_one('Repository', 'full_name', name)
+  full_name = get_repo_full_name(repo)
+  repo_node = REPOS.get(full_name)
+  if repo_node is None:
+    repo_node = graph.merge_one('Repository', 'full_name', full_name)
+    REPOS[full_name] = repo_node
+  return repo_node
+
+CONTRIBUTORS = set()
+def add_contributor(user_data, repo_data):
+  key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
+  if key in CONTRIBUTORS:
+    return
+  CONTRIBUTORS.add(key)
+  user = add_user(user_data)
+  repo = add_repo(repo_data)
+  graph.create_unique(Relationship(user, "CONTRIBUTOR", repo))
+
+MEMBERS = set()
+def add_member(user_data, repo_data):
+  key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
+  if key in MEMBERS:
+    return
+  MEMBERS.add(key)
+  user = add_user(user_data)
+  repo = add_repo(repo_data)
+  graph.create_unique(Relationship(user, "MEMBER", repo))
 
 def log(event):
-  print event['type'], event.get('id'), event['created_at']
+  if args.log:
+    print event['type'], event.get('id'), event['created_at']
 
 def create_repository(event):
   print "==== create_repository not implemented yet" + event
@@ -94,9 +142,8 @@ def handle_fork(event):
     handle_fork_legacy(event)
   else:
     repo = add_repo(event['repo'])
+    add_contributor(payload['forkee']['owner'], payload['forkee'])
     forkee = add_repo(payload['forkee'])
-    forkee_owner = add_user(payload['forkee']['owner'])
-    graph.create_unique(Relationship(forkee_owner, "CONTRIBUTOR", forkee))
     graph.create_unique(Relationship(forkee, "FORKED", repo))
 
 def handle_fork_legacy(event):
@@ -116,19 +163,15 @@ def handle_member(event):
   if payload['action'] == 'added':
     log(event)
     # print json.dumps(event, indent=2)
-    repo = add_repo(event.get('repo') or event.get('repository'))
-    member = add_user(payload['member'])
-    graph.create_unique(Relationship(member, "MEMBER", repo))
-    if 'login' in event['actor']:
-      actor = add_user(event['actor'])
-      graph.create_unique(Relationship(actor, "MEMBER", repo))
+    repo_name = event.get('repo') or event.get('repository')
+    if repo_name != '/':
+      add_member(payload['member'], repo_name)
+      if 'login' in event['actor']:
+        add_member(event['actor'], repo_name)
 
 def handle_push(event):
-  payload = event['payload']
   log(event)
-  pusher = add_user(event['actor'])
-  repo = add_repo(event['repo'])
-  graph.create_unique(Relationship(pusher, "CONTRIBUTOR", repo))
+  add_contributor(event['actor'], event['repo'])
 
 def handle_pull_request(event):
   payload = event['payload']
@@ -136,20 +179,16 @@ def handle_pull_request(event):
   if legacy_api:
     handle_pull_request_legacy(event)
   else:
-    actor = event['actor']
     pull_request = payload['pull_request']
     if (payload['action'] == 'closed' and pull_request.get('merged') == True):
       # print json.dumps(event, indent=2)
       log(event)
-      repo = add_repo(pull_request['base']['repo'])
 
       contributor = pull_request['user']
       if contributor is not None:
-        contributor = add_user(contributor)
-        graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
+        add_contributor(contributor, pull_request['base']['repo'])
 
-      actor = add_user(actor)
-      graph.create_unique(Relationship(actor, "MEMBER", repo))
+      add_member(event['actor'], pull_request['base']['repo'])
 
 def handle_pull_request_legacy(event):
   payload = event['payload']
@@ -173,27 +212,10 @@ def handle_pull_request_legacy(event):
         graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
 
     if 'login' in actor:
-      actor = add_user(actor)
-      graph.create_unique(Relationship(actor, "MEMBER", repo))
+      add_member(actor, event['repo'])
 
 def get_pull_request(pr_id):
   return graph.find_one('PullRequest', 'id', pr_id)
-
-def handle_pull_request_v2(event):
-  print json.dumps(event, indent=2)
-  payload = event['payload']
-  pull_request = payload['pull_request']
-  if (payload['action'] == 'closed' and pull_request.get('merged') == True):
-    log(event)
-    repo = add_repo(pull_request['base']['repo'])
-
-    contributor = pull_request['user']
-    if contributor is not None:
-      contributor = add_user(contributor)
-      graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
-
-    actor = add_user(event['actor'])
-    graph.create_unique(Relationship(actor, "MEMBER", repo))
 
 def generate_hours(from_date, until_date):
   h = from_date

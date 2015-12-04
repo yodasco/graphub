@@ -17,7 +17,6 @@ relationship {
   caption: '<type>';
 }
 
-
 node.Repository {
   color: #FF756E;
   border-color: #E06760;
@@ -32,3 +31,16 @@ node.User {
   caption: '{login}';
 }
 
+
+relationship.CONTRIBUTOR {
+  color: #68BDF6;
+  border-color: #5CA8DB;
+  text-color-internal: #FFFFFF;
+}
+
+relationship.MEMBER {
+  shaft-width: 2px;
+  color: #FFD86E;
+  border-color: #EDBA39;
+  text-color-internal: #604A0E;
+}
