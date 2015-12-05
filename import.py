@@ -8,6 +8,7 @@ from py2neo import Graph
 from py2neo import Node, Relationship
 from functools import wraps
 from time import time
+import pylru
 
 parser = argparse.ArgumentParser()
 def valid_date(s):
@@ -78,7 +79,10 @@ def process_file_contents(f):
 
     func = funcs.get(event['type'])
     if func:
-      func(event)
+      try:
+        func(event)
+      except Exception as e:
+        print "!!!   Error handling event %s   %s" % (event, e)
 
 def get_user_login(user):
   return user if type(user) == unicode else user['login']
@@ -96,7 +100,11 @@ def get_user(login):
   return USERS.get(login) or graph.find_one('User', 'login', login)
 
 def get_repo_full_name(repo):
-  return repo['full_name'] if 'full_name' in repo else repo['name']
+  if 'full_name' in repo:
+    return repo['full_name']
+  if 'owner' in repo and 'name' in repo:
+    return '%s/%s' % (repo['owner'], repo['name'])
+  return repo['name']
 
 REPOS = dict()
 def add_repo(repo):
@@ -107,22 +115,22 @@ def add_repo(repo):
     REPOS[full_name] = repo_node
   return repo_node
 
-CONTRIBUTORS = set()
+CONTRIBUTORS = dict()
 def add_contributor(user_data, repo_data):
   key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
-  if key in CONTRIBUTORS:
+  if CONTRIBUTORS.get(key):
     return
-  CONTRIBUTORS.add(key)
+  CONTRIBUTORS[key] = True
   user = add_user(user_data)
   repo = add_repo(repo_data)
   graph.create_unique(Relationship(user, "CONTRIBUTOR", repo))
 
-MEMBERS = set()
+MEMBERS = dict()
 def add_member(user_data, repo_data):
   key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
-  if key in MEMBERS:
+  if MEMBERS.get(key):
     return
-  MEMBERS.add(key)
+  MEMBERS[key] = True
   user = add_user(user_data)
   repo = add_repo(repo_data)
   graph.create_unique(Relationship(user, "MEMBER", repo))
@@ -171,7 +179,8 @@ def handle_member(event):
 
 def handle_push(event):
   log(event)
-  add_contributor(event['actor'], event['repo'])
+  # print json.dumps(event, indent=2)
+  add_contributor(event['actor'], event.get('repo') or event.get('repository'))
 
 def handle_pull_request(event):
   payload = event['payload']
