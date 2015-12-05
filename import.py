@@ -29,6 +29,28 @@ parser.add_argument('--log', help='Log verbose?', action='store_true')
 
 args = parser.parse_args()
 
+class Cache(object):
+  def __init__(self):
+    self.data = dict()
+    self.hits = 0
+    self.misses = 0
+
+  def get(self, key):
+    ret = self.data.get(key)
+    if ret:
+      self.hits += 1
+    else:
+      self.misses += 1
+    return ret
+
+  def put(self, key, obj):
+    self.data[key] = obj
+
+  def get_hit_ratio(self):
+    return float(self.hits) / (self.hits + self.misses)
+
+  def size(self):
+    return len(self.data)
 
 def timeit(f):
   @wraps(f)
@@ -83,17 +105,24 @@ def process_file_contents(f):
         func(event)
       except Exception as e:
         print "!!!   Error handling event %s   %s" % (event, e)
+  print_cache_stats()
+
+def print_cache_stats():
+  print 'USERS cache hit ratio: %f, size: %d' % (USERS.get_hit_ratio(), USERS.size())
+  print 'REPOS cache hit ratio: %f, size: %d' % (REPOS.get_hit_ratio(), REPOS.size())
+  print 'CONTRIBUTORS cache hit ratio: %f, size: %d' % (CONTRIBUTORS.get_hit_ratio(), CONTRIBUTORS.size())
+  print 'MEMBERS cache hit ratio: %f, size: %d' % (MEMBERS.get_hit_ratio(), MEMBERS.size())
 
 def get_user_login(user):
   return user if type(user) == unicode else user['login']
 
-USERS = dict()
+USERS = Cache()
 def add_user(user):
   login = get_user_login(user)
   user_node = USERS.get(login)
   if user_node is None:
     user_node = graph.merge_one('User', 'login', login)
-    USERS[login] = user_node
+    USERS.put(login, user_node)
   return user_node
 
 def get_user(login):
@@ -106,31 +135,31 @@ def get_repo_full_name(repo):
     return '%s/%s' % (repo['owner'], repo['name'])
   return repo['name']
 
-REPOS = dict()
+REPOS = Cache()
 def add_repo(repo):
   full_name = get_repo_full_name(repo)
   repo_node = REPOS.get(full_name)
   if repo_node is None:
     repo_node = graph.merge_one('Repository', 'full_name', full_name)
-    REPOS[full_name] = repo_node
+    REPOS.put(full_name, repo_node)
   return repo_node
 
-CONTRIBUTORS = dict()
+CONTRIBUTORS = Cache()
 def add_contributor(user_data, repo_data):
   key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
   if CONTRIBUTORS.get(key):
     return
-  CONTRIBUTORS[key] = True
+  CONTRIBUTORS.put(key, True)
   user = add_user(user_data)
   repo = add_repo(repo_data)
   graph.create_unique(Relationship(user, "CONTRIBUTOR", repo))
 
-MEMBERS = dict()
+MEMBERS = Cache()
 def add_member(user_data, repo_data):
   key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
   if MEMBERS.get(key):
     return
-  MEMBERS[key] = True
+  MEMBERS.put(key, True)
   user = add_user(user_data)
   repo = add_repo(repo_data)
   graph.create_unique(Relationship(user, "MEMBER", repo))
