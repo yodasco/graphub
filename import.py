@@ -3,6 +3,7 @@ import argparse
 import json
 import datetime
 import urllib2
+import os
 import StringIO
 from py2neo import Graph
 from py2neo import Node, Relationship
@@ -31,7 +32,7 @@ args = parser.parse_args()
 
 class Cache(object):
   def __init__(self):
-    self.data = dict()
+    self.data = pylru.lrucache(50000)
     self.hits = 0
     self.misses = 0
 
@@ -104,7 +105,8 @@ def process_file_contents(f):
       try:
         func(event)
       except Exception as e:
-        print "!!!   Error handling event %s   %s" % (event, e)
+        print "!!!   Error handling event %s " % event
+        print e
   print_cache_stats()
 
 def print_cache_stats():
@@ -138,6 +140,8 @@ def get_repo_full_name(repo):
 REPOS = Cache()
 def add_repo(repo):
   full_name = get_repo_full_name(repo)
+  if full_name == '/':
+    return
   repo_node = REPOS.get(full_name)
   if repo_node is None:
     repo_node = graph.merge_one('Repository', 'full_name', full_name)
@@ -146,7 +150,10 @@ def add_repo(repo):
 
 CONTRIBUTORS = Cache()
 def add_contributor(user_data, repo_data):
-  key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
+  repo_name = get_repo_full_name(repo_data)
+  if repo_name == '/':
+    return
+  key = get_user_login(user_data) + '-' + repo_name
   if CONTRIBUTORS.get(key):
     return
   CONTRIBUTORS.put(key, True)
@@ -156,7 +163,10 @@ def add_contributor(user_data, repo_data):
 
 MEMBERS = Cache()
 def add_member(user_data, repo_data):
-  key = get_user_login(user_data) + '-' + get_repo_full_name(repo_data)
+  repo_name = get_repo_full_name(repo_data)
+  if repo_name == '/':
+    return
+  key = get_user_login(user_data) + '-' + repo_name
   if MEMBERS.get(key):
     return
   MEMBERS.put(key, True)
@@ -200,11 +210,10 @@ def handle_member(event):
   if payload['action'] == 'added':
     log(event)
     # print json.dumps(event, indent=2)
-    repo_name = event.get('repo') or event.get('repository')
-    if repo_name != '/':
-      add_member(payload['member'], repo_name)
-      if 'login' in event['actor']:
-        add_member(event['actor'], repo_name)
+    repo = event.get('repo') or event.get('repository')
+    add_member(payload['member'], repo)
+    if 'login' in event['actor']:
+      add_member(event['actor'], repo)
 
 def handle_push(event):
   log(event)
@@ -241,13 +250,14 @@ def handle_pull_request_legacy(event):
   if payload['action'] == 'closed':
     log(event)
     repo = add_repo(event['repo'])
-    pr = get_pull_request(pr_id)
-    if pr:
-      # print json.dumps(event, indent=2)
-      contributor = get_user(pr.properties['puller'])
-      graph.delete(pr)
-      if contributor:
-        graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
+    if repo:
+      pr = get_pull_request(pr_id)
+      if pr:
+        # print json.dumps(event, indent=2)
+        contributor = get_user(pr.properties['puller'])
+        graph.delete(pr)
+        if contributor:
+          graph.create_unique(Relationship(contributor, "CONTRIBUTOR", repo))
 
     if 'login' in actor:
       add_member(actor, event['repo'])
@@ -263,7 +273,13 @@ def generate_hours(from_date, until_date):
 
 def download_and_load_hour(hour_string):
   file_name = 'http://data.githubarchive.org/%s.json.gz' % hour_string
-  response = urllib2.urlopen(file_name)
+  response = None
+  try:
+    response = urllib2.urlopen(file_name)
+  except Exception as e:
+    print '!!! Error downloading file %s' % file_name
+    print e
+    return
   if response.code != 200:
     print "Error downloading the file " + file_name
   else:
@@ -292,7 +308,7 @@ def setup_schema():
   constraint("PullRequest", "id")
   constraint('ProcessingStatus', 'last_processed_date')
 
-graph = Graph()
+graph = Graph(os.environ.get('NEO4J_CONNECTION_STRING'))
 
 if args.drop:
   print '!!! DROPPING DATABASE !!!'
