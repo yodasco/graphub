@@ -272,6 +272,15 @@ def generate_hours(from_date, until_date):
     h += datetime.timedelta(hours=1)
 
 def download_and_load_hour(hour_string):
+  data = download_hour(hour_string)
+  if data:
+    compressed_file = StringIO.StringIO()
+    compressed_file.write(data)
+    compressed_file.seek(0)
+    load_from_buffer(compressed_file)
+
+@timeit
+def download_hour(hour_string):
   file_name = 'http://data.githubarchive.org/%s.json.gz' % hour_string
   response = None
   try:
@@ -283,10 +292,7 @@ def download_and_load_hour(hour_string):
   if response.code != 200:
     print "Error downloading the file " + file_name
   else:
-    compressed_file = StringIO.StringIO()
-    compressed_file.write(response.read())
-    compressed_file.seek(0)
-    load_from_buffer(compressed_file)
+    return response.read()
 
 def load_from_date(date):
   for h in generate_hours(date, datetime.datetime.today()):
