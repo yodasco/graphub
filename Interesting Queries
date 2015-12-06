@@ -1,0 +1,30 @@
+Interesting Queries
+
+
+# All shortest paths b/w rantav and dhh
+MATCH (u1:User {login: 'rantav'}), (u2:User {login: 'dhh'}),
+  p = allShortestPaths((u1)-[*]-(u2))
+RETURN p
+
+# A single shortest path b/c rantav and dhh
+MATCH (u1:User {login: 'rantav'}), (u2:User {login: 'dhh'}),
+  p = shortestPath((u1)-[*]-(u2))
+RETURN p
+
+# And with igrigorik
+MATCH (u1:User {login: 'rantav'}), (u2:User {login: 'igrigorik'}),
+  p = shortestPath((u1)-[*]-(u2))
+RETURN p
+
+
+# All users and repos with second degree from rantav
+MATCH (u1:User {login: 'rantav'}), (u2:User),
+  p = shortestPath((u1)-[*..2]-(u2))
+RETURN p
+
+
+# count nodes
+match n return count(n)
+
+# Top GH users
+https://gitgossip.com/top
