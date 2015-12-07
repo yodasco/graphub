@@ -1,0 +1,101 @@
+{
+  // I want to use babel-eslint for parsing!
+  "parser": "babel-eslint",
+  "env": {
+    // I write for browser
+    "browser": true,
+    // and for the server
+    "node": true,
+    // with Meteor
+    "meteor": true,
+  },
+  "ecmaFeatures": {
+    "blockBindings": true,
+    "forOf": true,
+    "defaultParams": true,
+    "destructuring": true,
+    "restParams": true,
+    "superInFunctions": true,
+    "templateStrings": true
+  },
+  // To give you an idea how to override rule options:
+  "rules": {
+    "quotes": [2, "single"],
+    "eqeqeq": 2,
+    "no-extra-semi": 1,            // disallow unnecessary semicolons
+    "no-inner-declarations": 2,    // disallow function or variable declarations in nested blocks
+    "curly": 2,                 // specify curly brace conventions for all control statements
+    "no-eval": 2,               // disallow use of eval()
+    "no-extend-native": 2,      // disallow adding to native types
+    "no-new-wrappers": 2,       // disallows creating new instances of String, Number, and Boolean
+    "no-with": 2,               // disallow use of the with statement
+    "no-undef": 2,                   // disallow use of undeclared variables unless mentioned in a /*global */ block
+    "array-bracket-spacing": [2, "never"], // enforce spacing inside array brackets (off by default)
+    "indent": [2, 2],                      // this option sets a specific tab width for your code (off by default)
+    "no-array-constructor": 2,             // disallow use of the Array constructor
+    "no-mixed-spaces-and-tabs": 2,         // disallow mixed spaces and tabs for indentation
+    "no-new-object": 2,                    // disallow use of the Object constructor
+    "object-curly-spacing": [2, "never"],  // require or disallow padding inside curly braces (off by default)
+    "semi": 2,                             // require or disallow use of semicolons instead of ASI
+    // specify the maximum length of a line in your program
+    "max-len": [2, 80, 4, {ignoreComments: true, ignoreUrls: true, ignorePattern: "^\\s*var\\s.+=\\s*require\\s*\\("}],
+    // enforce one true brace style
+    "brace-style": [2, "1tbs", {"allowSingleLine": true}],
+    // require camel case names
+    "camelcase": 2,
+    // enforces spacing between keys and values in object literal properties
+    "key-spacing": [2, {"beforeColon": false, "afterColon": true}],
+    // require a capital letter for constructors
+    // "new-cap": 2,
+    // allow/disallow an empty newline after var statement
+    // "newline-after-var": 2,
+    // disallow space between function identifier and application
+    "no-spaced-func": 2,
+    // disallow trailing whitespace at the end of lines
+    "no-trailing-spaces": 2,
+    // enforce operators to be placed before or after line breaks
+    "operator-linebreak": [2, "after"],
+    // require or disallow space before blocks
+    "space-before-blocks": [2, "always"],
+    // require or disallow space before function opening parenthesis
+    "space-before-function-paren": [2, "never"],
+    // require or disallow spaces inside parentheses
+    "space-in-parens": [2, "never"],
+    // require spaces around operators
+    "space-infix-ops": 2,
+    // disallow function or variable declarations in nested blocks
+    "no-inner-declarations": [2, "functions"],
+    // ensure JSDoc comments are valid
+    "valid-jsdoc": 2,
+    "strict": 0,
+    // enforces consistent newlines before or after dots
+    "dot-location": [2, "object"],
+    // require default case in switch statements
+    "default-case": 2,
+    // make sure for-in loops have an if statement
+    "guard-for-in": 2,
+    // disallow use of eval()
+    "no-eval": 2,
+    // disallow adding to native types
+    "no-extend-native": 2,
+    // disallow creation of functions within loops
+    "no-loop-func": 2,
+    // disallow use of multiline strings
+    "no-multi-str": 2,
+  },
+  "globals": {
+    "React": false,
+    "classNames": false,
+    "Reaktor": false,
+    "FlowRouter": false,
+    "ReactLayout": false,
+
+    "Header": true,
+    "LoginButtons": true,
+    "User": true,
+    "About": true,
+    "Home": true,
+    "MainLayout": true,
+    "NotFound": true
+  }
+}
