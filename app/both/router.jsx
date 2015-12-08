@@ -13,6 +13,6 @@ Reaktor.init(
 // Reaktor doensn't have a notFound component yet
 FlowRouter.notFound = {
   action() {
-    ReactLayout.render(MainLayout, { content: <NotFound /> });
+    ReactLayout.render(MainLayout, {content: <NotFound />});
   }
 };
