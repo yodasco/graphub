@@ -90,6 +90,7 @@
     "FlowRouter": false,
     "ReactLayout": false,
     "ValidatedMethod": false,
+    "Async": false,
 
     "Header": true,
     "LoginButtons": true,

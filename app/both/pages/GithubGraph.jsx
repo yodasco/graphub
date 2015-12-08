@@ -8,21 +8,26 @@ GithubGraph = React.createClass({
       <div>
         <h1>{this.props.username1}</h1>
         <h1>{this.props.username2}</h1>
+        <pre>{this.state.queryResult}</pre>
       </div>
     );
   },
-  componentDidUpdate(prevProps, prevState) {
-    if (this.props.username1 && this.props.username2) {
-      Meteor.call('getShortestPath', this.props.username1,
-                  this.props.username2,
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.username1 && nextProps.username2) {
+      Meteor.call('getShortestPath', nextProps.username1,
+                  nextProps.username2,
         (err, res)=> {
           if (err) {
             console.error(err);
             return;
           }
+          this.setState({queryResult: res});
           console.log(res);
         }
       );
     }
+  },
+  getInitialState() {
+    return {queryResult: null};
   }
 });
