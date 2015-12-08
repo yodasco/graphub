@@ -27,3 +27,5 @@ ejson
 spacebars
 check
 ecmascript
+twbs:bootstrap-noglyph
+accounts-github

@@ -89,6 +89,7 @@
     "Reaktor": false,
     "FlowRouter": false,
     "ReactLayout": false,
+    "ValidatedMethod": false,
 
     "Header": true,
     "LoginButtons": true,
@@ -96,6 +97,8 @@
     "About": true,
     "Home": true,
     "MainLayout": true,
-    "NotFound": true
+    "NotFound": true,
+    "GithubUsernameInputs": true,
+    "GithubGraph": true
   }
 }
