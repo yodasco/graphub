@@ -34,7 +34,9 @@ GithubGraph = React.createClass({
   }
 });
 
-let renderGraph = function(graph) {
+// Creates a d3 model from the result of neo4j
+let buildModel = function(graph) {
+  let color = d3.scale.category20();
   let index = {}; // An index of node IDs to node index in the nodes array
   graph.nodes.forEach(function(node, i) {
     index[node.id] = i;
@@ -44,12 +46,12 @@ let renderGraph = function(graph) {
       if (_.include(n.labels, 'User')) {
         n.name = n.properties.login;
         n.type = 'user';
-        n.color = '#ff9';
+        n.color = color(n.type);
       }
       if (_.include(n.labels, 'Repository')) {
         n.name = n.properties.full_name;
         n.type = 'repo';
-        n.color = '#f9f';
+        n.color = color(n.type);
       }
       return n;
     }),
@@ -59,6 +61,75 @@ let renderGraph = function(graph) {
       return r;
     })
   };
+  return model;
+};
+let click = function(d) {
+  if (d3.event.defaultPrevented) {
+    return; // ignore drag
+  }
+};
+// Defines the arrow for svg
+let defineArrow = function(svg) {
+
+  svg.append('defs').selectAll('marker').
+      data(['arrow-head']).
+    enter().append('marker').
+      attr('id', function(d) { return d; }).
+      attr('viewBox', '0 -5 10 10').
+      attr('refX', 25).
+      attr('refY', 0).
+      attr('markerWidth', 6).
+      attr('markerHeight', 6).
+      attr('orient', 'auto').
+    append('path').
+      attr('d', 'M0,-5L10,0L0,5 L10,0 L0, -5').
+      style('stroke', '#4679BD');
+};
+
+let createLink = function(svg, model, force) {
+  let link = svg.selectAll('.link').data(model.links);
+  link.enter().append('line').attr('class', 'link').
+    style('stroke-width', function(d) { return 1; }).
+    style('marker-end',  'url(#arrow-head)') ;
+
+  link.exit().remove();
+  return link;
+};
+
+let createNode = function(svg, model, force) {
+  let node = svg.selectAll('.node').
+      data(model.nodes);
+
+  let nodeEnter = node.enter().append('g').
+      attr('class', 'node').
+      call(force.drag);
+  nodeEnter.append('circle').
+      attr('r', 8).
+      style('fill', function(d) {return d.color;});
+  nodeEnter.append('text').
+        attr('dx', 10).
+        attr('dy', '.35em').
+        text(function(d) {return d.name || d.id;}).
+        style('stroke', 'gray');
+
+  node.exit().remove();
+  return node;
+};
+
+let createSvg = function(width, height) {
+  d3.select('#graph').selectAll('svg').remove();
+  let svg = d3.select('#graph').append('svg').
+      attr('width', width).
+      attr('height', height);
+
+  defineArrow(svg);
+
+  svg.append('rect').
+      attr('width', width).
+      attr('height', height);
+  return svg;
+};
+let createForce = function(model) {
   let tick = function() {
     link.attr('x1', function(d) { return d.source.x; }).
         attr('y1', function(d) { return d.source.y; }).
@@ -69,57 +140,27 @@ let renderGraph = function(graph) {
     });
   };
 
-  let click = function(d) {
-    if (d3.event.defaultPrevented) {
-      return; // ignore drag
-    }
-  };
-
   let width = $(document).width(), height = 300;
   let fill = d3.scale.category20();
   let force = d3.layout.force().
       size([width, height]).
       nodes(model.nodes).
       links(model.links).
-      linkDistance(50).
-      charge(-1000).
+      linkDistance(100).
+      charge(-1200).
       on('tick', tick);
 
-  d3.select('#graph').selectAll('svg').remove();
-  let svg = d3.select('#graph').append('svg').
-      attr('width', width).
-      attr('height', height);
-
-  svg.append('rect').
-      attr('width', width).
-      attr('height', height);
-
-  let nodes = force.nodes();
-  let links = force.links();
-
-  let link = svg.selectAll('.link').data(model.links);
-  link.enter().insert('line', '.node').attr('class', 'link');
-  link.exit().remove();
-
-  let node = svg.selectAll('.node').data(model.nodes);
-
-  let nodeEnter = node.enter().
-    insert('g').
-    attr('class', 'node').
-    attr('fill', function(d) {return d.color;});
-
-  nodeEnter.insert('circle').attr('r', 25);
-  nodeEnter.insert('text').text(function(d) {
-    return d.name || d.id;
-  });
-
-  node.on('click', click).call(force.drag);
-  node.exit().remove();
-
-  force.start();
-
+  let svg = createSvg(width, height);
+  let link = createLink(svg, model, force);
+  let node = createNode(svg, model, force);
+  return force;
 };
 
+let renderGraph = function(graph) {
+  let model = buildModel(graph);
+  let force = createForce(model);
+  force.start();
+};
 
 let graph = {
    "nodes":[
