@@ -4,16 +4,16 @@ Home = React.createClass({
       <div className='container-fluid'>
         <h1>Welcome to Graphub!</h1>
         <GithubUsernameInputs onSubmit={this.onSubmit}/>
-        <GithubGraph username1={this.state.username1}
-                     username2={this.state.username2}/>
+        <GithubGraph user1={this.state.user1}
+                     user2={this.state.user2}/>
       </div>
     );
   },
-  onSubmit(username1, username2) {
-    this.setState({username1, username2});
+  onSubmit(user1, user2) {
+    this.setState({user1, user2});
   },
   getInitialState() {
-    return {username1: undefined, username2: undefined};
+    return {user1: undefined, user2: undefined};
   },
 
 });

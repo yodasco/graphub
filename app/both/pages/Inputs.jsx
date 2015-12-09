@@ -13,14 +13,14 @@ GithubUsernameInputs = React.createClass({
           <label>Github username 2</label>
           <input type='text' ref='username2' className='form-control'/>
         </div>
-        <button className='btn btn-primary'>Submit</button>
+        <button className='btn btn-primary btn-lg btn-block'>Submit</button>
       </form>
     );
   },
   onSubmit(e) {
     e.preventDefault();
-    let u1 = React.findDOMNode(this.refs.username1).value.trim();
-    let u2 = React.findDOMNode(this.refs.username2).value.trim();
+    let u1 = ReactDOM.findDOMNode(this.refs.username1).value.trim();
+    let u2 = ReactDOM.findDOMNode(this.refs.username2).value.trim();
     this.props.onSubmit(u1, u2);
   }
 });
