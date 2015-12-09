@@ -88,12 +88,46 @@ let defineArrow = function(svg) {
 
 let createLink = function(svg, model, force) {
   let link = svg.selectAll('.link').data(model.links);
-  link.enter().append('line').attr('class', 'link').
+  link.enter().append('line').
+    attr('class', function(d) {
+      return `link ${d.type}`;
+    }).
     style('stroke-width', function(d) { return 1; }).
     style('marker-end',  'url(#arrow-head)') ;
 
+
+  let edgepaths = svg.selectAll('.edgepath').
+      data(model.links).
+      enter().
+      append('path').
+      attr({
+        'class': 'edgepath',
+        'id': function(d, i) { return 'edgepath' + i;}
+      }).
+      style('pointer-events', 'none');
+
+  let edgelabels = svg.selectAll('.edgelabel').
+      data(model.links).
+      enter().
+      append('text').
+      style('pointer-events', 'none').
+      attr({
+        'class': function(d) {return `edgelabel ${d.type}`;},
+        'dx': 20,
+        'dy': -5,
+      });
+
+  edgelabels.append('textPath').
+      attr('xlink:href',function(d,i) {return '#edgepath' + i;}).
+      style('pointer-events', 'none').
+      text(function(d, i) {
+        return d.type;
+      });
+
+
+
   link.exit().remove();
-  return link;
+  return {link, edgepaths, edgelabels};
 };
 
 let createNode = function(svg, model, force) {
@@ -109,8 +143,7 @@ let createNode = function(svg, model, force) {
   nodeEnter.append('text').
         attr('dx', 10).
         attr('dy', '.35em').
-        text(function(d) {return d.name || d.id;}).
-        style('stroke', 'gray');
+        text(function(d) {return d.name || d.id;});
 
   node.exit().remove();
   return node;
@@ -138,6 +171,21 @@ let createForce = function(model) {
     node.attr('transform', function(d) {
       return 'translate(' + d.x + ',' + d.y + ')';
     });
+    edgepaths.attr('d', function(d) { var path='M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y;
+                                       //console.log(d)
+                                       return path});
+
+    edgelabels.attr('transform',function(d,i){
+        if (d.target.x<d.source.x){
+            bbox = this.getBBox();
+            rx = bbox.x+bbox.width/2;
+            ry = bbox.y+bbox.height/2;
+            return 'rotate(180 '+rx+' '+ry+')';
+            }
+        else {
+            return 'rotate(0)';
+            }
+    });
   };
 
   let width = $(document).width(), height = 300;
@@ -148,10 +196,12 @@ let createForce = function(model) {
       links(model.links).
       linkDistance(100).
       charge(-1200).
+      theta(0.1).
+      gravity(0.1).
       on('tick', tick);
 
   let svg = createSvg(width, height);
-  let link = createLink(svg, model, force);
+  let {link, edgepaths, edgelabels} = createLink(svg, model, force);
   let node = createNode(svg, model, force);
   return force;
 };
