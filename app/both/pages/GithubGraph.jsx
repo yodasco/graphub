@@ -96,29 +96,29 @@ let createLink = function(svg, model, force) {
     style('marker-end',  'url(#arrow-head)') ;
 
 
-  let edgepaths = svg.selectAll('.edgepath').
+  let linkpaths = svg.selectAll('.linkpath').
       data(model.links).
       enter().
       append('path').
       attr({
-        'class': 'edgepath',
-        'id': function(d, i) { return 'edgepath' + i;}
+        'class': 'linkpath',
+        'id': function(d, i) { return 'linkpath' + i;}
       }).
       style('pointer-events', 'none');
 
-  let edgelabels = svg.selectAll('.edgelabel').
+  let linklabels = svg.selectAll('.linklabel').
       data(model.links).
       enter().
       append('text').
       style('pointer-events', 'none').
       attr({
-        'class': function(d) {return `edgelabel ${d.type}`;},
+        'class': function(d) {return `linklabel ${d.type}`;},
         'dx': 20,
         'dy': -5,
       });
 
-  edgelabels.append('textPath').
-      attr('xlink:href',function(d,i) {return '#edgepath' + i;}).
+  linklabels.append('textPath').
+      attr('xlink:href',function(d,i) {return '#linkpath' + i;}).
       style('pointer-events', 'none').
       text(function(d, i) {
         return d.type;
@@ -127,7 +127,7 @@ let createLink = function(svg, model, force) {
 
 
   link.exit().remove();
-  return {link, edgepaths, edgelabels};
+  return {link, linkpaths, linklabels};
 };
 
 let createNode = function(svg, model, force) {
@@ -171,11 +171,11 @@ let createForce = function(model) {
     node.attr('transform', function(d) {
       return 'translate(' + d.x + ',' + d.y + ')';
     });
-    edgepaths.attr('d', function(d) { var path='M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y;
+    linkpaths.attr('d', function(d) { var path='M '+d.source.x+' '+d.source.y+' L '+ d.target.x +' '+d.target.y;
                                        //console.log(d)
                                        return path});
 
-    edgelabels.attr('transform',function(d,i){
+    linklabels.attr('transform',function(d,i){
         if (d.target.x<d.source.x){
             bbox = this.getBBox();
             rx = bbox.x+bbox.width/2;
@@ -201,7 +201,7 @@ let createForce = function(model) {
       on('tick', tick);
 
   let svg = createSvg(width, height);
-  let {link, edgepaths, edgelabels} = createLink(svg, model, force);
+  let {link, linkpaths, linklabels} = createLink(svg, model, force);
   let node = createNode(svg, model, force);
   return force;
 };
