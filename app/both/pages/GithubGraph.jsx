@@ -13,15 +13,14 @@ GithubGraph = React.createClass({
   },
   componentWillReceiveProps(nextProps) {
     if (nextProps.user1 && nextProps.user2) {
-      Meteor.call('getShortestPath', nextProps.user1,
+      Meteor.call('getAllShortestPaths', nextProps.user1,
                   nextProps.user2,
         (err, res)=> {
           if (err) {
             console.error(err);
             return;
           }
-          // this.setState({queryResult: res});
-          renderGraph(res.graph);
+          renderGraphs(res);
         }
       );
     }
@@ -35,32 +34,44 @@ GithubGraph = React.createClass({
 });
 
 // Creates a d3 model from the result of neo4j
-let buildModel = function(graph) {
+let buildModel = function(graphs) {
   let color = d3.scale.category20();
   let index = {}; // An index of node IDs to node index in the nodes array
-  graph.nodes.forEach(function(node, i) {
-    index[node.id] = i;
+  let nodes = [];
+  graphs.forEach(function(graph) {
+    graph.graph.nodes.forEach(function(node) {
+      if (!index[node.id]) {
+        // Node not here yet
+        index[node.id] = nodes.length;
+        nodes.push(node);
+        if (_.include(node.labels, 'User')) {
+          node.name = node.properties.login;
+          node.type = 'user';
+          node.color = color(node.type);
+        }
+        if (_.include(node.labels, 'Repository')) {
+          node.name = node.properties.full_name;
+          node.type = 'repo';
+          node.color = color(node.type);
+        }
+      }
+    });
   });
-  let model = {
-    nodes: graph.nodes.map(function(n) {
-      if (_.include(n.labels, 'User')) {
-        n.name = n.properties.login;
-        n.type = 'user';
-        n.color = color(n.type);
+  let links = [];
+  let linkIndex = {}; // Keep an index to prevent link repetition
+  graphs.forEach(function(graph) {
+    graph.graph.relationships.forEach(function(r) {
+      let key = `${r.startNode}-[${r.type}]->${r.endNode}`;
+      if (!linkIndex[key]) {
+        r.source = index[r.startNode];
+        r.target = index[r.endNode];
+        links.push(r);
+        linkIndex[key] = r;
       }
-      if (_.include(n.labels, 'Repository')) {
-        n.name = n.properties.full_name;
-        n.type = 'repo';
-        n.color = color(n.type);
-      }
-      return n;
-    }),
-    links: graph.relationships.map(function(r) {
-      r.source = index[r.startNode];
-      r.target = index[r.endNode];
-      return r;
-    })
-  };
+    });
+  });
+
+  let model = {nodes, links};
   return model;
 };
 let click = function(d) {
@@ -195,8 +206,7 @@ let createForce = function(model) {
       links(model.links).
       linkDistance(100).
       charge(-1200).
-      theta(0.1).
-      gravity(0.1).
+      gravity(0.2).
       on('tick', tick);
 
   let svg = createSvg(width, height);
@@ -206,7 +216,13 @@ let createForce = function(model) {
 };
 
 let renderGraph = function(graph) {
-  let model = buildModel(graph);
+  let model = buildModel([{graph}]);
+  let force = createForce(model);
+  force.start();
+};
+
+let renderGraphs = function(graphs) {
+  let model = buildModel(graphs);
   let force = createForce(model);
   force.start();
 };
