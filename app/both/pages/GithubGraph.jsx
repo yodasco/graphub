@@ -20,7 +20,7 @@ GithubGraph = React.createClass({
             console.error(err);
             return;
           }
-          renderGraphs(res);
+          renderGraphs(res, nextProps.user1, nextProps.user2);
         }
       );
     }
@@ -34,7 +34,7 @@ GithubGraph = React.createClass({
 });
 
 // Creates a d3 model from the result of neo4j
-let buildModel = function(graphs) {
+let buildModel = function(graphs, user1, user2) {
   let color = d3.scale.category20();
   let index = {}; // An index of node IDs to node index in the nodes array
   let nodes = [];
@@ -48,8 +48,9 @@ let buildModel = function(graphs) {
           node.name = node.properties.login;
           node.type = 'user';
           node.color = color(node.type);
-        }
-        if (_.include(node.labels, 'Repository')) {
+          node.isStartNode = (node.name === user1);
+          node.isEndNode = (node.name === user2);
+        } else if (_.include(node.labels, 'Repository')) {
           node.name = node.properties.full_name;
           node.type = 'repo';
           node.color = color(node.type);
@@ -81,7 +82,6 @@ let click = function(d) {
 };
 // Defines the arrow for svg
 let defineArrow = function(svg) {
-
   svg.append('defs').selectAll('marker').
       data(['arrow-head']).
     enter().append('marker').
@@ -150,6 +150,9 @@ let createNode = function(svg, model, force) {
       call(force.drag);
   nodeEnter.append('circle').
       attr('r', 8).
+      attr('class', function(n) {
+        return (n.isStartNode || n.isEndNode) ? 'highlight' : '';
+      }).
       style('fill', function(d) {return d.color;});
   nodeEnter.append('text').
         attr('dx', 10).
@@ -216,13 +219,13 @@ let createForce = function(model) {
 };
 
 let renderGraph = function(graph) {
-  let model = buildModel([{graph}]);
+  let model = buildModel([{graph}], 'rantav', 'dhh');
   let force = createForce(model);
   force.start();
 };
 
-let renderGraphs = function(graphs) {
-  let model = buildModel(graphs);
+let renderGraphs = function(graphs, user1, user2) {
+  let model = buildModel(graphs, user1, user2);
   let force = createForce(model);
   force.start();
 };
