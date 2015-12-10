@@ -34,7 +34,7 @@ GithubGraph = React.createClass({
 });
 
 // Creates a d3 model from the result of neo4j
-let buildModel = function(graphs, user1, user2) {
+let buildModel = function(graphs, user1, user2, width, height) {
   let color = d3.scale.category20();
   let index = {}; // An index of node IDs to node index in the nodes array
   let nodes = [];
@@ -50,6 +50,14 @@ let buildModel = function(graphs, user1, user2) {
           node.color = color(node.type);
           node.isStartNode = (node.name === user1);
           node.isEndNode = (node.name === user2);
+          node.fixed = node.isStartNode || node.isEndNode;
+          if (node.isStartNode) {
+            node.x = node.y = 50;
+          }
+          if (node.isEndNode) {
+            node.x  = width - 50;
+            node.y = height - 50;
+          }
         } else if (_.include(node.labels, 'Repository')) {
           node.name = node.properties.full_name;
           node.type = 'repo';
@@ -176,7 +184,7 @@ let createSvg = function(width, height) {
       attr('height', height);
   return svg;
 };
-let createForce = function(model) {
+let createForce = function(model, width, height) {
   let tick = function() {
     link.attr('x1', function(d) { return d.source.x; }).
         attr('y1', function(d) { return d.source.y; }).
@@ -201,7 +209,6 @@ let createForce = function(model) {
     });
   };
 
-  let width = $(document).width(), height = 300;
   let fill = d3.scale.category20();
   let force = d3.layout.force().
       size([width, height]).
@@ -219,14 +226,16 @@ let createForce = function(model) {
 };
 
 let renderGraph = function(graph) {
-  let model = buildModel([{graph}], 'rantav', 'dhh');
-  let force = createForce(model);
+  let width = $('#graph').width(), height = 300;
+  let model = buildModel([{graph}], 'rantav', 'dhh', width, height);
+  let force = createForce(model, width, height);
   force.start();
 };
 
 let renderGraphs = function(graphs, user1, user2) {
-  let model = buildModel(graphs, user1, user2);
-  let force = createForce(model);
+  let width = $('#graph').width(), height = 300;
+  let model = buildModel(graphs, user1, user2, width, height);
+  let force = createForce(model, width, height);
   force.start();
 };
 
