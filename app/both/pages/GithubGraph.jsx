@@ -6,7 +6,7 @@ GithubGraph = React.createClass({
   render() {
     return (
       <div>
-        <h1>Shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code></h1>
+        <h3>Shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code></h3>
         <div id='graph'></div>
       </div>
     );
@@ -52,11 +52,11 @@ let buildModel = function(graphs, user1, user2, width, height) {
           node.isEndNode = (node.name === user2);
           node.fixed = node.isStartNode || node.isEndNode;
           if (node.isStartNode) {
-            node.x = node.y = 50;
+            node.x = node.y = 10;
           }
           if (node.isEndNode) {
-            node.x  = width - 50;
-            node.y = height - 50;
+            node.x  = width - 100;
+            node.y = height - 10;
           }
         } else if (_.include(node.labels, 'Repository')) {
           node.name = node.properties.full_name;
@@ -215,7 +215,7 @@ let createForce = function(model, width, height) {
       nodes(model.nodes).
       links(model.links).
       linkDistance(100).
-      charge(-1200).
+      charge(-500).
       gravity(0.2).
       on('tick', tick);
 
@@ -226,17 +226,23 @@ let createForce = function(model, width, height) {
 };
 
 let renderGraph = function(graph) {
-  let width = $('#graph').width(), height = 300;
+  let {width, height} = getGraphDimentions();
   let model = buildModel([{graph}], 'rantav', 'dhh', width, height);
   let force = createForce(model, width, height);
   force.start();
 };
 
 let renderGraphs = function(graphs, user1, user2) {
-  let width = $('#graph').width(), height = 300;
+  let {width, height} = getGraphDimentions();
   let model = buildModel(graphs, user1, user2, width, height);
   let force = createForce(model, width, height);
   force.start();
+};
+
+let getGraphDimentions = function() {
+  let width = $('#graph').width();
+  let height = $(document).height() - $('#graph').position().top - 20;
+  return {width, height};
 };
 
 let graph = {

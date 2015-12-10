@@ -5,15 +5,21 @@ GithubUsernameInputs = React.createClass({
   render() {
     return (
       <form className='form' onSubmit={this.onSubmit}>
-        <div className='form-group'>
-          <label>Github username 1</label>
-          <input type='text' ref='username1' className='form-control'/>
+        <div className='row'>
+          <div className='col-xs-12 col-sm-4'>
+            <div className='form-group'>
+              <input type='text' ref='username1' className='form-control' placeholder='Github username 1'/>
+            </div>
+          </div>
+          <div className='col-xs-12 col-sm-4'>
+            <div className='form-group'>
+              <input type='text' ref='username2' className='form-control' placeholder='Github username 2'/>
+            </div>
+          </div>
+          <div className='col-xs-12 col-sm-4'>
+            <button className='btn btn-primary btn-block'>Submit</button>
+          </div>
         </div>
-        <div className='form-group'>
-          <label>Github username 2</label>
-          <input type='text' ref='username2' className='form-control'/>
-        </div>
-        <button className='btn btn-primary btn-lg btn-block'>Submit</button>
       </form>
     );
   },

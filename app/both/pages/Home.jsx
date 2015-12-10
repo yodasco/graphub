@@ -2,7 +2,7 @@ Home = React.createClass({
   render() {
     return (
       <div className='container-fluid'>
-        <h1>Welcome to Graphub!</h1>
+        <h3>Welcome to Graphub!</h3>
         <GithubUsernameInputs onSubmit={this.onSubmit}/>
         <GithubGraph user1={this.state.user1}
                      user2={this.state.user2}/>
