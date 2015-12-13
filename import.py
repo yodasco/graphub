@@ -8,7 +8,7 @@ import StringIO
 from py2neo import Graph
 from py2neo import Node, Relationship
 from functools import wraps
-from time import time
+from time import time, sleep
 import pylru
 import traceback
 
@@ -300,15 +300,18 @@ def download_hour(hour_string):
     return response.read()
 
 def load_from_date(date):
-  for h in generate_hours(date, datetime.datetime.today()):
-    print "=== Loading:  ", h
-    download_and_load_hour(h)
-    status = graph.merge_one('ProcessingStatus', 'last_processed_date',
-                             'last_processed_date')
-    status.properties['date'] = h
-    status.push()
+  while True:
+    today = datetime.datetime.today()
+    for h in generate_hours(date, today):
+      print "=== Loading:  ", h
+      download_and_load_hour(h)
+      status = graph.merge_one('ProcessingStatus', 'last_processed_date',
+                               'last_processed_date')
+      status.properties['date'] = h
+      status.push()
 
-  print 'DONE DONE DONE'
+    print 'DONE until today %s   will sleep for a day now...' % today
+    sleep(60 * 60 * 24)
 
 def setup_schema():
   def constraint(label, key):
