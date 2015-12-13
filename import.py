@@ -308,6 +308,8 @@ def load_from_date(date):
     status.properties['date'] = h
     status.push()
 
+  print 'DONE DONE DONE'
+
 def setup_schema():
   def constraint(label, key):
     try:
