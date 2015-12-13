@@ -2321,11 +2321,15 @@ neo.utils.measureText = (function() {
       circles = selection.selectAll('circle.ring').data(function(node) {
         return [node];
       });
-      circles.enter().insert('circle', '.outline').classed('ring', true).attr({
-        cx: 0,
-        cy: 0,
-        'stroke-width': '8px'
-      });
+      circles.enter().insert('circle', '.outline').classed('ring', true).
+        classed('highlight', function(node) {
+          return node.isStartNode || node.isEndNode;
+        }).
+        attr({
+          cx: 0,
+          cy: 0,
+          'stroke-width': '8px'
+        });
       circles.attr({
         r: function(node) {
           return node.radius + 4;

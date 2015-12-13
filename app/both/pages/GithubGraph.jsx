@@ -72,6 +72,14 @@ let renderGraphs = function(graphs, user1, user2) {
     g.addNodes(graph.graph.nodes.map(neo.CypherGraphModel.convertNode()));
     g.addRelationships(graph.graph.relationships.map(neo.CypherGraphModel.convertRelationship(g)));
   });
+  g.nodes().forEach(function(node) {
+    if (node.propertyMap.login === user1) {
+      node.isStartNode = true;
+    }
+    if (node.propertyMap.login === user2) {
+      node.isEndNode = true;
+    }
+  });
   let view =  new neo.graphView($('#graph svg')[0], g, new neo.style());
   view.update();
 };
