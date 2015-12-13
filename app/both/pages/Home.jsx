@@ -9,9 +9,9 @@ Home = React.createClass({
           <span className="skills">Login with GitHub to explore your github graph</span>
         </div>
 
-          <GithubUsernameInputs onSubmit={this.onSubmit}/>
-          <GithubGraph user1={this.state.user1}
-                       user2={this.state.user2}/>
+        <GithubUsernameInputs onSubmit={this.onSubmit}/>
+        <GithubGraph user1={this.state.user1}
+                     user2={this.state.user2}/>
       </div>
     );
   },

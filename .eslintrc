@@ -103,6 +103,7 @@
     "NotFound": true,
     "GithubUsernameInputs": true,
     "GithubGraph": true,
+    "Nav": true,
     "neo": true,
   }
 }
