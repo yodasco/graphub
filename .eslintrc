@@ -102,6 +102,7 @@
     "MainLayout": true,
     "NotFound": true,
     "GithubUsernameInputs": true,
-    "GithubGraph": true
+    "GithubGraph": true,
+    "neo": true,
   }
 }

@@ -28,3 +28,9 @@ match n return count(n)
 
 # Top GH users
 https://gitgossip.com/top
+
+
+// Just for development...
+MATCH (u1:User {login: 'gsliepen'}), (u2:User {login: 'Rumko'}),
+  p = shortestPath((u1)-[*]-(u2))
+RETURN p
