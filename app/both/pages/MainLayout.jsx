@@ -3,17 +3,7 @@ MainLayout = React.createClass({
     return (
       <div>
         <Nav/>
-        <header>
-          <div className="container">
-            <div className="row">
-              <div className="col-lg-12">
-                <main>{this.props.content}</main>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Footer */}
+        {this.props.content}
         <footer className="text-center">
           <div className="footer-below">
             <div className="container">

@@ -1,5 +1,12 @@
 Nav = React.createClass({
+  mixins: [ReactMeteorData],
+  getMeteorData() {
+    return {
+      currentUser: Meteor.user()
+    };
+  },
   render() {
+    let image = this.data.currentUser ? <img className="img-responsive img-logo" src="/img/profile.png" alt=""/> : '';
     return (
       <nav className="navbar navbar-default navbar-fixed-top">
         <div className="container">
@@ -11,7 +18,10 @@ Nav = React.createClass({
               <span className="icon-bar"></span>
               <span className="icon-bar"></span>
             </button>
-            <a className="navbar-brand" href="/">Graphub</a>
+            <a className="navbar-brand" href="/">
+              {image}
+              Graphub
+            </a>
           </div>
           <div className="collapse navbar-collapse" id="navbar-collapse">
             <ul className="nav navbar-nav navbar-right">
@@ -19,7 +29,7 @@ Nav = React.createClass({
                 <a href="/"></a>
               </li>
               <li>
-                <a href="/about"></a>
+                <a href="/about">About</a>
               </li>
               <li>
                 <LoginButtons />

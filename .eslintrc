@@ -93,6 +93,7 @@
     "Async": false,
     "ReactDOM": false,
     "d3": false,
+    "ReactMeteorData": false,
 
     "Header": true,
     "LoginButtons": true,

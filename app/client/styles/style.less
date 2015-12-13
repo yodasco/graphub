@@ -151,6 +151,12 @@ header {
 			}
 		}
 	}
+  .img-logo {
+    width: 45px;
+    float: left;
+    position: relative;
+    top: -12px;
+  }
 }
 
 .navbar-default,
@@ -169,6 +175,9 @@ header {
   }
   .navbar-nav > li > a {
     color: #fff;
+  }
+  .navbar-nav > li > a:hover {
+    color: #eee;
   }
 }
 
@@ -205,11 +214,11 @@ section.success {
 
 
 @media(min-width:767px) {
-    #portfolio {
-        .portfolio-item {
-            margin: 0 0 30px;
-        }
+  #portfolio {
+    .portfolio-item {
+      margin: 0 0 30px;
     }
+  }
 }
 
 .btn-outline {
@@ -304,100 +313,8 @@ footer {
 	}
 }
 
-.btn-social {
-	display: inline-block;
-	height: 50px;
-	width: 50px;
-	border: 2px solid white;
-	border-radius: 100%;
-	text-align: center;
-	font-size: 20px;
-	line-height: 45px;
-}
-
 .btn:focus,
 .btn:active,
 .btn.active {
 	outline: none;
-}
-
-.scroll-top {
-    position: fixed;
-    right: 2%;
-    bottom: 2%;
-    width: 50px;
-    height: 50px;
-    z-index: 1049;
-    .btn {
-    	font-size: 20px;
-	    width: 50px;
-	    height: 50px;
-	    border-radius: 100%;
-	    line-height: 28px;
-	    &:focus {
-	    	outline: none;
-	    }
-    }
-}
-
-.portfolio-modal {
-	.modal-content {
-	    border-radius: 0;
-	    background-clip: border-box;
-	    -webkit-box-shadow: none;
-	    box-shadow: none;
-	    border: none;
-	    min-height: 100%;
-	    padding: 100px 0;
-	    text-align: center;
-		h2 {
-	    	margin: 0;
-	    	font-size: 3em;
-		}
-		img {
-			margin-bottom: 30px;
-		}
-		.item-details {
-			margin: 30px 0;
-		}
-	}
-    .close-modal {
-        position: absolute;
-        width:75px;
-        height:75px;
-        background-color:transparent;
-        top: 25px;
-        right: 25px;
-        cursor: pointer;
-        &:hover {
-            opacity: 0.3;
-        }
-        .lr {
-            height:75px;
-            width:1px;
-            margin-left:35px;
-            background-color:@brand-primary;
-            transform: rotate(45deg);
-            -ms-transform: rotate(45deg);
-            /* IE 9 */
-            -webkit-transform: rotate(45deg);
-            /* Safari and Chrome */
-            z-index:1051;
-            .rl {
-                height:75px;
-                width:1px;
-                background-color:@brand-primary;
-                transform: rotate(90deg);
-                -ms-transform: rotate(90deg);
-                /* IE 9 */
-                -webkit-transform: rotate(90deg);
-                /* Safari and Chrome */
-                z-index:1052;
-            }
-        }
-    }
-    .modal-backdrop {
-    	opacity: 0;
-    	display: none;
-    }
 }

@@ -4,33 +4,51 @@ GithubGraph = React.createClass({
     user2: React.PropTypes.string,
   },
   render() {
+    if (!this.state.initialized) {
+      return <img className="img-responsive center-block" src="/img/profile.png" alt=""/>;
+    }
+    if (this.state.loading) {
+      return (
+        <h3>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...</h3>
+      );
+    }
+    let distance = this.state.queryResult[0].graph.relationships.length / 2;
     return (
       <div>
-        <h3>Shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code></h3>
+        <h3>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is <code><strong>{distance}</strong></code></h3>
         <div id='graph'><svg></svg></div>
       </div>
     );
   },
   componentWillReceiveProps(nextProps) {
     if (nextProps.user1 && nextProps.user2) {
+      this.setState({loading: true, queryResult: null, initialized: true});
       Meteor.call('getAllShortestPaths', nextProps.user1,
                   nextProps.user2,
         (err, res)=> {
           if (err) {
             console.error(err);
+            this.setState({loading: false, queryResult: null});
             return;
           }
+          this.setState({queryResult: res, loading: false});
           renderGraphs(res, nextProps.user1, nextProps.user2);
         }
       );
+    } else {
+      this.setState({loading: false, queryResult: null, initialized: false});
     }
   },
   getInitialState() {
-    return {queryResult: null};
+    return {
+      queryResult: null,
+      loading: false,
+      initialized: false,
+    };
   },
-  componentDidMount() {
-    renderGraph(graph);
-  }
+  // componentDidMount() {
+  //   renderGraph(graph);
+  // }
 });
 
 
