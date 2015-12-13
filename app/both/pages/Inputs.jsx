@@ -3,14 +3,14 @@ GithubUsernameInputs = React.createClass({
     onSubmit: React.PropTypes.func.isRequired,
   },
   ghUserOptions: [
-    {key: 'mojombo', displayName: 'Tom Preston-Werner'},
-    {key: 'defunkt', displayName: 'Chris Wanstrath'},
-    {key: 'addyosmani', displayName: 'Addy Osmani'},
-    {key: 'mbostock', displayName: 'Mike Bostock'},
-    {key: 'jashkenas', displayName: 'Jeremy Ashkenas'},
-    {key: 'tj', displayName: 'TJ Holowaychuk'},
-    {key: 'dhh', displayName: 'David Heinemeier Hansson'},
-    {key: 'torvalds', displayName: 'Linus Torvalds'}
+    {value: 'mojombo', label: 'Tom Preston-Werner'},
+    {value: 'defunkt', label: 'Chris Wanstrath'},
+    {value: 'addyosmani', label: 'Addy Osmani'},
+    {value: 'mbostock', label: 'Mike Bostock'},
+    {value: 'jashkenas', label: 'Jeremy Ashkenas'},
+    {value: 'tj', label: 'TJ Holowaychuk'},
+    {value: 'dhh', label: 'David Heinemeier Hansson'},
+    {value: 'torvalds', label: 'Linus Torvalds'}
   ],
   render() {
     return (
@@ -20,7 +20,7 @@ GithubUsernameInputs = React.createClass({
             Calculate your github distance from&nbsp;<select className='form-control' onChange={this.onChange} ref='select' defaultValue=''>
               <option value=''>&lt;select one&gt;</option>
               {this.ghUserOptions.map(function(o) {
-                return <option key={o.key} value={o.key}>{o.displayName}</option>;
+                return <option key={o.value} value={o.value}>{o.label}</option>;
               })}
             </select>
           </h3>
