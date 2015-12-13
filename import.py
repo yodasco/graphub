@@ -10,6 +10,7 @@ from py2neo import Node, Relationship
 from functools import wraps
 from time import time
 import pylru
+import traceback
 
 parser = argparse.ArgumentParser()
 def valid_date(s):
@@ -22,6 +23,9 @@ parser.add_argument('--drop', help='Drop data first?', action='store_true', defa
 parser.add_argument('--file', help='File to import')
 parser.add_argument('--forks', help='Handle forks?', action='store_true')
 parser.add_argument('--watches', help='Handle watches (stars)?', action='store_true')
+parser.add_argument('--pulls', help='Handle pull requests?', action='store_true')
+parser.add_argument('--pushes', help='Handle pushes?', action='store_true')
+parser.add_argument('--members', help='Handle membership events?', action='store_true')
 parser.add_argument('--cont', help='Continue download from last place?', action='store_true')
 parser.add_argument('--download_from_date',
                     help='Start download from date. format YYYY-MM-DD',
@@ -84,21 +88,22 @@ def process_file_contents(f):
       event = json.loads(line)
     except Exception as e:
       print 'Exception processing line %d' % line_number
-      print e
+      traceback.print_exc()
       continue
     funcs = {
       'RepositoryEvent': create_repository,
-      'PullRequestEvent': handle_pull_request,
-      'MemberEvent': handle_member,
-      'ForkEvent': handle_fork,
-      'WatchEvent': handle_watch,
-      'PushEvent': handle_push,
     }
     # Check out optional event hanlers
-    if not args.forks:
-      del funcs['ForkEvent']
-    if not args.watches:
-      del funcs['WatchEvent']
+    if args.pulls:
+      funcs['PullRequestEvent'] = handle_pull_request
+    if args.pushes:
+      funcs['PushEvent'] = handle_push
+    if args.members:
+      funcs['MemberEvent'] = handle_member
+    if args.forks:
+      funcs['ForkEvent'] = handle_fork
+    if args.watches:
+      funcs['WatchEvent'] = handle_watch
 
     func = funcs.get(event['type'])
     if func:
@@ -106,7 +111,7 @@ def process_file_contents(f):
         func(event)
       except Exception as e:
         print "!!!   Error handling event %s " % event
-        print e
+        traceback.print_exc()
   print_cache_stats()
 
 def print_cache_stats():
@@ -287,7 +292,7 @@ def download_hour(hour_string):
     response = urllib2.urlopen(file_name)
   except Exception as e:
     print '!!! Error downloading file %s' % file_name
-    print e
+    traceback.print_exc()
     return
   if response.code != 200:
     print "Error downloading the file " + file_name
