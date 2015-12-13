@@ -17,7 +17,7 @@ About = React.createClass({
               </p>
             </div>
             <div className="col-lg-4">
-                <p>TODO: Explanation how we do it</p>
+                <p>TODO: Say more...</p>
             </div>
             <div className="col-lg-8 col-lg-offset-2 text-center">
               <a href="#" className="btn btn-lg btn-outline">
