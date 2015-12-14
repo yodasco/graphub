@@ -160,11 +160,12 @@ def add_properties(db_node, source_dict, property_names):
   modified = False
   for p in property_names:
     v = source_dict.get(p)
-    if p:
+    if v:
       db_node.properties[p] = v
       modified = True
   if modified:
     graph.push(db_node)
+    # print db_node
 
 CONTRIBUTORS = Cache()
 def add_contributor(user_data, repo_data):
