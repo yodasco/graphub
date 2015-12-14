@@ -699,7 +699,8 @@ neo.style = (function() {
     style: {
       node: {
         diameter: '50px',
-        color: '#A5ABB6',
+        color: '#fff',
+        'text-color-internal': '#2C3E50',
         'border-color': '#9AA1AC',
         'border-width': '2px',
         'text-color-internal': '#FFFFFF',
@@ -715,15 +716,13 @@ neo.style = (function() {
         caption: '<type>',
       },
       'node.Repository': {
-        color: '#FF756E',
         'border-color': '#E06760',
-        'text-color-internal': '#FFFFFF',
+        'text-color-internal': '#2C3E50',
         caption: '{full_name}',
       },
       'node.User': {
-        color: '#DE9BF9',
         'border-color': '#BF85D6',
-        'text-color-internal': '#FFFFFF',
+        'text-color-internal': '#2C3E50',
         caption: '{login}',
       },
       'relationship.CONTRIBUTOR': {
