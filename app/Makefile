@@ -1,2 +1,7 @@
 run:
-	meteor --settings settings.json
+	meteor --settings settings-local.json
+
+deploy:
+	cp settings-prod.json settings.json
+	mup deploy
+	rm settings.json
