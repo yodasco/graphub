@@ -277,25 +277,28 @@ def generate_hours(from_date, until_date):
     h += datetime.timedelta(hours=1)
 
 def download_and_load_hour(hour_string):
-  data = download_hour(hour_string)
+  data = None
+  try:
+    data = download_hour(hour_string)
+  except:
+    print '!!! Error downloading file %s' % hour_string
+    traceback.print_exc()
+
   if data:
     compressed_file = StringIO.StringIO()
     compressed_file.write(data)
     compressed_file.seek(0)
     load_from_buffer(compressed_file)
+    return True
 
 @timeit
 def download_hour(hour_string):
   file_name = 'http://data.githubarchive.org/%s.json.gz' % hour_string
-  response = None
-  try:
-    response = urllib2.urlopen(file_name)
-  except Exception as e:
-    print '!!! Error downloading file %s' % file_name
-    traceback.print_exc()
-    return
+  response = urllib2.urlopen(file_name)
   if response.code != 200:
-    print "Error downloading the file " + file_name
+    print '!!! Error downloading file %s' % file_name
+    print 'Response code: %d' % response.code
+    return
   else:
     return response.read()
 
@@ -304,13 +307,14 @@ def load_from_date(date):
     today = datetime.datetime.today()
     for h in generate_hours(date, today):
       print "=== Loading:  ", h
-      download_and_load_hour(h)
-      status = graph.merge_one('ProcessingStatus', 'last_processed_date',
-                               'last_processed_date')
-      status.properties['date'] = h
-      status.push()
+      loaded = download_and_load_hour(h)
+      if loaded:
+        status = graph.merge_one('ProcessingStatus', 'last_processed_date',
+                                 'last_processed_date')
+        status.properties['date'] = h
+        status.push()
 
-    hours_to_sleep = 6
+    hours_to_sleep = 2
     print 'DONE until today %s   will sleep for %d hours...' % (today, hours_to_sleep)
     sleep(60 * 60 * hours_to_sleep)
 
@@ -342,6 +346,7 @@ if args.cont:
   if status:
     date = status.properties['date']
     date = datetime.datetime.strptime(date, '%Y-%m-%d-%H')
+    date += datetime.timedelta(hours=1)
   else:
     date = datetime.datetime(2011, 2, 12)
 
