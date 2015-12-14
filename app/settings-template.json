@@ -1,0 +1,8 @@
+{
+  "neo4j": {
+    "server": "http://localhost:7474",
+    "endpoint": "/db/data",
+    "user": "XXXXXX",
+    "pass": "XXXXXX"
+  }
+}
