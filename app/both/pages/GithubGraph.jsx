@@ -9,12 +9,12 @@ GithubGraph = React.createClass({
     }
     if (this.state.loading) {
       return (
-        <h3>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...</h3>
+        <h3 className='text-center'>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...</h3>
       );
     }
     let distance = this.state.queryResult[0].graph.relationships.length / 2;
     return (
-      <div>
+      <div className='center-block text-center'>
         <h3>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is <code><strong>{distance}</strong></code></h3>
         <div id='graph'><svg></svg></div>
       </div>

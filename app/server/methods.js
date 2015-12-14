@@ -11,7 +11,7 @@ Meteor.methods({
     let query = `MATCH (u1:User {login: '${user1}'}),
                        (u2:User {login: '${user2}'}),
                        p = allShortestPaths((u1)-[*]-(u2))
-                 RETURN p limit 10`;
+                 RETURN p limit 100`;
     return runNeo4jQuery(query);
   }
 });
