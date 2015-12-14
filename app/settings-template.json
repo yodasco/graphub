@@ -1,4 +1,11 @@
 {
+  "public": {
+    "analyticsSettings": {
+      "Google Analytics" : {
+        "trackingId": "UA-71341770-2"
+      }
+    }
+  },
   "neo4j": {
     "server": "http://localhost:7474",
     "endpoint": "/db/data",
