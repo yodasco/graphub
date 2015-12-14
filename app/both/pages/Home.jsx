@@ -31,7 +31,6 @@ Home = React.createClass({
             </div>
           </div>
         </header>
-
       );
     }
   },
