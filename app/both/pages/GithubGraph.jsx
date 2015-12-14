@@ -10,8 +10,10 @@ GithubGraph = React.createClass({
     if (this.state.loading) {
       return (
         <div>
-          <h4 className='text-center'>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...</h4>
-          <img className="img-responsive center-block" src="/img/profile.png" alt=""/>
+          <h4 className='text-center'>The shortest path between
+            <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...
+          </h4>
+          <img className="img-responsive center-block image-rotating" src="/img/profile.png" alt=""/>
         </div>
       );
     }
