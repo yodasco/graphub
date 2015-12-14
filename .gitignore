@@ -1,5 +1,8 @@
 .DS_Store
 venv
+app/settings.json
+app/settings-local.json
+app/settings-prod.json
 # Created by https://www.gitignore.io/api/python
 
 ### Python ###
