@@ -22,13 +22,11 @@ About = React.createClass({
             </div>
           </div>
           <div className="row">
-            <div className="col-lg-4 col-lg-offset-2">
+            <div className="col-lg-8 col-lg-offset-2">
               <p>
                 Graphhub lets our explore GitHub graph, either your personal
                 graph or someone else's graph.
               </p>
-            </div>
-            <div className="col-lg-4">
               <p>
                 The inspiration for Graphub is <a href='https://en.wikipedia.org/wiki/Erd%C5%91s_number'>Erdős number</a>.
                 The Erdős number describes the "collaborative distance" between mathematician Paul Erdős and another person, as measured by authorship of mathematical papers.
