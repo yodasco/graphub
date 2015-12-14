@@ -1,3 +1,4 @@
+let defaultUser = 'torvalds';
 GithubUsernameInputs = React.createClass({
   propTypes: {
     onSubmit: React.PropTypes.func.isRequired,
@@ -14,11 +15,11 @@ GithubUsernameInputs = React.createClass({
   ],
   render() {
     return (
-      <div className="col-lg-12 text-center">
+      <div className="col-lg-12 text-center GithubUsernameInputs">
         <form className='form-inline' onSubmit={this.onSubmit}>
           <h3>
-            Calculate your github distance from&nbsp;<select className='form-control' onChange={this.onChange} ref='select' defaultValue=''>
-              <option value=''>&lt;select one&gt;</option>
+            Calculate your github distance from
+              <select className='form-control' onChange={this.onChange} ref='select' defaultValue={defaultUser}>
               {this.ghUserOptions.map(function(o) {
                 return <option key={o.value} value={o.value}>{o.label}</option>;
               })}
@@ -29,8 +30,12 @@ GithubUsernameInputs = React.createClass({
       </div>
     );
   },
+  componentDidMount() {
+    let u1 = Meteor.user().services.github.username;
+    let u2 = defaultUser;
+    this.props.onSubmit(u1, u2);
+  },
   onChange(e) {
-    e.preventDefault();
     let u1 = Meteor.user().services.github.username;
     let u2 = ReactDOM.findDOMNode(this.refs.select).value;
     this.props.onSubmit(u1, u2);

@@ -9,14 +9,19 @@ GithubGraph = React.createClass({
     }
     if (this.state.loading) {
       return (
-        <h3 className='text-center'>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...</h3>
+        <div>
+          <h4 className='text-center'>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...</h4>
+          <img className="img-responsive center-block" src="/img/profile.png" alt=""/>
+        </div>
       );
     }
     let distance = this.state.queryResult[0].graph.relationships.length / 2;
     return (
       <div className='center-block text-center'>
-        <h3>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is <code><strong>{distance}</strong></code></h3>
-        <div id='graph'><svg></svg></div>
+        <h4>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is <code><strong>{distance}</strong></code></h4>
+        <div id='graph'>
+          <svg></svg>
+        </div>
       </div>
     );
   },
@@ -66,7 +71,7 @@ let renderGraph = function(graph) {
 let renderGraphs = function(graphs, user1, user2) {
   $('#graph svg').html('');
   let {width, height} = getGraphDimentions();
-  $('#graph svg').width(width).height(height);
+  $('#graph svg').width('100%').height(height);
   let g = new neo.models.Graph();
   graphs.forEach(function(graph) {
     g.addNodes(graph.graph.nodes.map(neo.CypherGraphModel.convertNode()));
