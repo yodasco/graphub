@@ -144,6 +144,8 @@ def get_repo_full_name(repo):
 
 REPOS = Cache()
 def add_repo(repo):
+  if repo is None:
+    return
   full_name = get_repo_full_name(repo)
   if full_name == '/':
     return
@@ -151,7 +153,18 @@ def add_repo(repo):
   if repo_node is None:
     repo_node = graph.merge_one('Repository', 'full_name', full_name)
     REPOS.put(full_name, repo_node)
+  add_properties(repo_node, repo, ['stargazers_count', 'watchers_count', 'forks_count', 'language'])
   return repo_node
+
+def add_properties(db_node, source_dict, property_names):
+  modified = False
+  for p in property_names:
+    v = source_dict.get(p)
+    if p:
+      db_node.properties[p] = v
+      modified = True
+  if modified:
+    graph.push(db_node)
 
 CONTRIBUTORS = Cache()
 def add_contributor(user_data, repo_data):
@@ -232,6 +245,8 @@ def handle_pull_request(event):
     handle_pull_request_legacy(event)
   else:
     pull_request = payload['pull_request']
+    add_repo(pull_request['base']['repo'])
+    add_repo(pull_request['head']['repo'])
     if (payload['action'] == 'closed' and pull_request.get('merged') == True):
       # print json.dumps(event, indent=2)
       log(event)
