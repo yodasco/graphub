@@ -310,8 +310,9 @@ def load_from_date(date):
       status.properties['date'] = h
       status.push()
 
-    print 'DONE until today %s   will sleep for a day now...' % today
-    sleep(60 * 60 * 24)
+    hours_to_sleep = 6
+    print 'DONE until today %s   will sleep for %d hours...' % (today, hours_to_sleep)
+    sleep(60 * 60 * hours_to_sleep)
 
 def setup_schema():
   def constraint(label, key):
