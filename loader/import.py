@@ -136,6 +136,8 @@ def add_user(user):
   if user_node is None:
     user_node = graph.merge_one('User', 'login', login)
     USERS.put(login, user_node)
+  add_properties(user_node, user, ['name', 'company', 'location', 'blog',
+                 'email', 'type', 'avatar_url', 'html_url', 'site_admin', 'id'])
   return user_node
 
 def get_user(login):
@@ -162,7 +164,8 @@ def add_repo(repo):
   if repo_node is None:
     repo_node = graph.merge_one('Repository', 'full_name', full_name)
     REPOS.put(full_name, repo_node)
-  add_properties(repo_node, repo, ['stargazers_count', 'watchers_count', 'forks_count', 'language'])
+  add_properties(repo_node, repo, ['stargazers_count', 'watchers_count',
+                 'forks_count', 'language', 'id'])
   return repo_node
 
 def add_properties(db_node, source_dict, property_names):
@@ -179,16 +182,17 @@ def add_properties(db_node, source_dict, property_names):
 
 CONTRIBUTORS = Cache()
 def add_contributor(user_data, repo_data):
-  repo_name = get_repo_full_name(repo_data)
-  if repo_name == '/':
-    return
-  key = get_user_login(user_data) + '-' + repo_name
-  if CONTRIBUTORS.get(key):
-    return
-  CONTRIBUTORS.put(key, True)
-  user = add_user(user_data)
-  repo = add_repo(repo_data)
-  graph.create_unique(Relationship(user, "CONTRIBUTOR", repo))
+  if repo_data and user_data:
+    repo_name = get_repo_full_name(repo_data)
+    if repo_name == '/':
+      return
+    key = get_user_login(user_data) + '-' + repo_name
+    if CONTRIBUTORS.get(key):
+      return
+    CONTRIBUTORS.put(key, True)
+    user = add_user(user_data)
+    repo = add_repo(repo_data)
+    graph.create_unique(Relationship(user, "CONTRIBUTOR", repo))
 
 MEMBERS = Cache()
 def add_member(user_data, repo_data):
