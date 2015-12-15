@@ -209,28 +209,37 @@ def log(event):
 def create_repository(event):
   print "==== create_repository not implemented yet" + event
 
+def extract_repo_name_from_url(url):
+  if url:
+    return url[len('https://github.com/'):]
+
 def handle_fork(event):
   # print json.dumps(event, indent=2)
   payload = event['payload']
   log(event)
-  if type(payload['forkee']) == int:
-    handle_fork_legacy(event)
-  else:
-    repo = add_repo(event['repo'])
-    add_contributor(payload['forkee']['owner'], payload['forkee'])
-    forkee = add_repo(payload['forkee'])
-    graph.create_unique(Relationship(forkee, "FORKED", repo))
+  repo = add_repo(event.get('repo') or event.get('repository'))
+  fork_repo_dict = payload.get('forkee') or extract_repo_name_from_url(event.get('url'))
+  fork_repo = add_repo(fork_repo_dict)
+  forker_dict = event.get('actor_attributes') or payload['forkee']['owner']
+  add_contributor(forker_dict, fork_repo_dict)
+  fork_rel = Relationship(fork_repo, "FORKED", repo)
+  graph.create_unique(fork_rel)
+  fork_rel['created_at'] = event['created_at']
+  fork_rel['created_at_long'] = unix_time_millis(event['created_at'])
+  graph.push(fork_rel)
 
-def handle_fork_legacy(event):
-  print "handle_fork_legacy not implemented yet"
+epoch = datetime.datetime.utcfromtimestamp(0)
+def unix_time_millis(date_str):
+  dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S-08:00')
+  return (dt - epoch).total_seconds() * 1000.0
 
 def handle_watch(event):
   # print json.dumps(event, indent=2)
   payload = event['payload']
   if payload['action'] == 'started':
     log(event)
-    actor = add_user(payload.get('actor') or event.get('actor'))
-    repo = add_repo(payload.get('repo') or event.get('repo'))
+    actor = add_user(payload.get('actor') or event.get('actor') or event.get('actor_attributes'))
+    repo = add_repo(payload.get('repo') or event.get('repo') or event.get('repository'))
     graph.create_unique(Relationship(actor, "WATCHES", repo))
 
 def handle_member(event):
