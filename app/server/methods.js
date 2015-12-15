@@ -3,14 +3,14 @@ Meteor.methods({
   getShortestPath(user1, user2) {
     let query = `MATCH (u1:User {login: '${user1}'}),
                        (u2:User {login: '${user2}'}),
-                       p = shortestPath((u1)-[*]-(u2))
+                       p = shortestPath((u1)-[:CONTRIBUTOR|MEMBER*]-(u2))
                  RETURN p`;
     return runNeo4jQuery(query);
   },
   getAllShortestPaths(user1, user2) {
     let query = `MATCH (u1:User {login: '${user1}'}),
                        (u2:User {login: '${user2}'}),
-                       p = allShortestPaths((u1)-[*]-(u2))
+                       p = allShortestPaths((u1)-[:CONTRIBUTOR|MEMBER*]-(u2))
                  RETURN p limit 100`;
     return runNeo4jQuery(query);
   }
