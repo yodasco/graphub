@@ -147,7 +147,8 @@ def get_repo_full_name(repo):
   if 'full_name' in repo:
     return repo['full_name']
   if 'owner' in repo and 'name' in repo:
-    return '%s/%s' % (repo['owner'], repo['name'])
+    owner = repo['owner'] if type(repo['owner']) == unicode else repo['owner']['login']
+    return '%s/%s' % (owner, repo['name'])
   return repo['name']
 
 REPOS = Cache()
@@ -218,6 +219,9 @@ def handle_fork(event):
   payload = event['payload']
   log(event)
   repo = add_repo(event.get('repo') or event.get('repository'))
+  if type(payload.get('forkee')) == int:
+    print ">>> Not handling legacy fork event..."
+    return
   fork_repo_dict = payload.get('forkee') or extract_repo_name_from_url(event.get('url'))
   fork_repo = add_repo(fork_repo_dict)
   forker_dict = event.get('actor_attributes') or payload['forkee']['owner']
@@ -229,7 +233,10 @@ def handle_fork(event):
 
 epoch = datetime.datetime.utcfromtimestamp(0)
 def unix_time_millis(date_str):
-  dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S-08:00')
+  try:
+    dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S-08:00')
+  except:
+    dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
   return (dt - epoch).total_seconds() * 1000.0
 
 def handle_watch(event):
