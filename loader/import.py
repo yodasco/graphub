@@ -137,7 +137,8 @@ def add_user(user):
     user_node = graph.merge_one('User', 'login', login)
     USERS.put(login, user_node)
   add_properties(user_node, user, ['name', 'company', 'location', 'blog',
-                 'email', 'type', 'avatar_url', 'html_url', 'site_admin', 'id'])
+                 'email', 'gravatar_id', 'type', 'avatar_url', 'html_url',
+                 'site_admin', 'id'])
   return user_node
 
 def get_user(login):
