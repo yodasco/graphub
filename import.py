@@ -22,7 +22,7 @@ def valid_date(s):
 parser.add_argument('--drop', help='Drop data first?', action='store_true', default=False)
 parser.add_argument('--file', help='File to import')
 parser.add_argument('--forks', help='Handle forks?', action='store_true')
-parser.add_argument('--watches', help='Handle watches (stars)?', action='store_true')
+parser.add_argument('--stars', help='Handle stars (stars)?', action='store_true')
 parser.add_argument('--pulls', help='Handle pull requests?', action='store_true')
 parser.add_argument('--pushes', help='Handle pushes?', action='store_true')
 parser.add_argument('--members', help='Handle membership events?', action='store_true')
@@ -52,7 +52,10 @@ class Cache(object):
     self.data[key] = obj
 
   def get_hit_ratio(self):
-    return float(self.hits) / (self.hits + self.misses)
+    total = self.hits + self.misses
+    if total == 0:
+      return 0
+    return float(self.hits) / total
 
   def size(self):
     return len(self.data)
@@ -102,7 +105,7 @@ def process_file_contents(f):
       funcs['MemberEvent'] = handle_member
     if args.forks:
       funcs['ForkEvent'] = handle_fork
-    if args.watches:
+    if args.stars:
       funcs['WatchEvent'] = handle_watch
 
     func = funcs.get(event['type'])
@@ -121,7 +124,10 @@ def print_cache_stats():
   print 'MEMBERS cache hit ratio: %f, size: %d' % (MEMBERS.get_hit_ratio(), MEMBERS.size())
 
 def get_user_login(user):
-  return user if type(user) == unicode else user['login']
+  if type(user) == unicode:
+    return user
+  if 'login' in user:
+    return user['login']
 
 USERS = Cache()
 def add_user(user):
@@ -136,6 +142,8 @@ def get_user(login):
   return USERS.get(login) or graph.find_one('User', 'login', login)
 
 def get_repo_full_name(repo):
+  if type(repo) == unicode:
+    return repo
   if 'full_name' in repo:
     return repo['full_name']
   if 'owner' in repo and 'name' in repo:
@@ -157,15 +165,16 @@ def add_repo(repo):
   return repo_node
 
 def add_properties(db_node, source_dict, property_names):
-  modified = False
-  for p in property_names:
-    v = source_dict.get(p)
-    if v:
-      db_node.properties[p] = v
-      modified = True
-  if modified:
-    graph.push(db_node)
-    # print db_node
+  if type(source_dict) == dict:
+    modified = False
+    for p in property_names:
+      v = source_dict.get(p)
+      if v:
+        db_node.properties[p] = v
+        modified = True
+    if modified:
+      graph.push(db_node)
+      # print db_node
 
 CONTRIBUTORS = Cache()
 def add_contributor(user_data, repo_data):
@@ -220,8 +229,8 @@ def handle_watch(event):
   payload = event['payload']
   if payload['action'] == 'started':
     log(event)
-    actor = add_user(event['actor'])
-    repo = add_repo(event['repo'])
+    actor = add_user(payload.get('actor') or event.get('actor'))
+    repo = add_repo(payload.get('repo') or event.get('repo'))
     graph.create_unique(Relationship(actor, "WATCHES", repo))
 
 def handle_member(event):
