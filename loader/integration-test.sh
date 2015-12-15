@@ -4,7 +4,7 @@ source venv/bin/activate
 
 for f in $(ls test-data)
 do
-  cmd="python import.py --stars --pulls --pushes --members --forks --file  "test-data/$f" --drop"
+  cmd="python loader.py --stars --pulls --pushes --members --forks --file  "test-data/$f" --drop"
   echo "$cmd"
   $cmd
 done
