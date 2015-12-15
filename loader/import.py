@@ -223,10 +223,9 @@ def handle_fork(event):
   forker_dict = event.get('actor_attributes') or payload['forkee']['owner']
   add_contributor(forker_dict, fork_repo_dict)
   fork_rel = Relationship(fork_repo, "FORKED", repo)
-  graph.create_unique(fork_rel)
   fork_rel['created_at'] = event['created_at']
   fork_rel['created_at_long'] = unix_time_millis(event['created_at'])
-  graph.push(fork_rel)
+  graph.create_unique(fork_rel)
 
 epoch = datetime.datetime.utcfromtimestamp(0)
 def unix_time_millis(date_str):
@@ -240,7 +239,10 @@ def handle_watch(event):
     log(event)
     actor = add_user(payload.get('actor') or event.get('actor') or event.get('actor_attributes'))
     repo = add_repo(payload.get('repo') or event.get('repo') or event.get('repository'))
-    graph.create_unique(Relationship(actor, "WATCHES", repo))
+    star_rel = Relationship(actor, "STAR", repo)
+    star_rel['created_at'] = event['created_at']
+    star_rel['created_at_long'] = unix_time_millis(event['created_at'])
+    graph.create_unique(star_rel)
 
 def handle_member(event):
   payload = event['payload']
