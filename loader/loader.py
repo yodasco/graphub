@@ -238,10 +238,9 @@ def handle_fork(event):
 
 epoch = datetime.datetime.utcfromtimestamp(0)
 def unix_time_millis(date_str):
-  try:
-    dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S-08:00')
-  except:
-    dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ')
+  l = len('YYYY-mm-ddTHH:MM:SS')
+  date_str = date_str[:l]
+  dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
   return (dt - epoch).total_seconds() * 1000.0
 
 def handle_watch(event):
