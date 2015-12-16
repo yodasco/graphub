@@ -22,6 +22,22 @@ MATCH (u1:User {login: 'rantav'}), (u2:User),
   p = shortestPath((u1)-[*..2]-(u2))
 RETURN p
 
+# Find all users that have at least 3 projects in common with me
+match (u1:User {login: 'rantav'})-->(repo1:Repository)<--(u2:User),
+      (u1)-->(repo2:Repository)<--(u2),
+      (u1)-->(repo3:Repository)<--(u2)
+where repo1 <> repo2 and repo1 <> repo3 and repo2 <> repo3
+return *
+
+# Your forked projects
+match (ran:User {login: 'jondot'})-[:MEMBER]->(r:Repository)<-[:FORKED*]-(r2:Repository) return *
+
+# Fork trees
+match (r1:Repository)-[:FORKED]->(r2:Repository)-[:FORKED]->(r3:Repository) return * limit 10
+match (r1:Repository)-[:FORKED]->(r2:Repository)-[:FORKED]->(r3:Repository)-[:FORKED]->(r4:Repository) return * limit 10
+
+# Users that starred repos I'm member of
+match (u:User)-[:STAR]->(r:Repository)<-[:MEMBER]-(ran:User {login: 'jondot'}) return * limit 100
 
 # count nodes
 match n return count(n)
@@ -29,6 +45,7 @@ match n return count(n)
 # Top GH users
 https://gitgossip.com/top
 
+http://www.remwebdevelopment.com/blog/sql/some-basic-and-useful-cypher-queries-for-neo4j-201.html
 
 // Just for development...
 MATCH (u1:User {login: 'gsliepen'}), (u2:User {login: 'Rumko'}),

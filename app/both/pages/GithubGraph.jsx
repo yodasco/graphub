@@ -73,9 +73,29 @@ let renderGraphs = function(graphs, user1, user2) {
     }
   });
   let view =  new neo.graphView($('#graph svg')[0], g, new neo.style());
+  setupTooltip(view);
   view.update();
 };
 
+let tooltip;
+let setupTooltip = function(vis) {
+  if (!tooltip) {
+    tooltip = d3.select('body').append('div').attr('id', 'tooltip').style('opacity', 0);
+  }
+  vis.on('nodeMouseOver', function(node) {
+    // let html = neo.getTooltipForNode(node);
+    let text = _.include(node.labels, 'Repository') ?
+               node.propertyMap.full_name :
+               node.propertyMap.login;
+    tooltip.transition().duration(200).style('opacity', .9);
+    tooltip.html(text).
+        style('left', (d3.event.pageX) + 'px').
+        style('top', (d3.event.pageY - 28) + 'px');
+  });
+  vis.on('nodeMouseOut', function(node) {
+    tooltip.transition().duration(500).style('opacity', 0);
+  });
+};
 let getGraphDimentions = function() {
   let width = $('#graph').width();
   let height = $(document).height() - $('#graph').position().top - 20;
