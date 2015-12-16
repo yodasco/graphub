@@ -1,4 +1,3 @@
-
 .image-rotating {
   -webkit-animation:spin 4s linear infinite;
   -moz-animation:spin 4s linear infinite;
@@ -7,3 +6,22 @@
 @-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
 @-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }
+
+#tooltip {
+  position: absolute;
+  text-align: left;
+  padding: .5em;
+  font: 12px sans-serif;
+  background: #1D2834;
+  color: #fff;
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+  .name {
+    font-weight: bolder;
+    margin-bottom: .5em;
+  }
+  .photo {
+    height: 30px;
+  }
+}
