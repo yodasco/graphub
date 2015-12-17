@@ -1,12 +1,26 @@
 Nav = React.createClass({
   mixins: [ReactMeteorData],
+  getInitialData() {
+    return {
+      currentUser: Meteor.user(),
+      loading: Session.get('loading-minor'),
+    };
+  },
   getMeteorData() {
     return {
-      currentUser: Meteor.user()
+      currentUser: Meteor.user(),
+      loading: Session.get('loading-minor')
     };
   },
   render() {
-    let image = this.data.currentUser ? <img className="img-responsive img-logo" src="/img/profile.png" alt=""/> : '';
+    let image = '';
+    if (this.data.currentUser) {
+      if (this.data.loading) {
+        image = <img className='img-responsive img-logo image-rotating' src="/img/profile.png" alt=""/>;
+      } else {
+        image = <img className='img-responsive img-logo' src="/img/profile.png" alt=""/>;
+      }
+    }
     return (
       <nav className="navbar navbar-default navbar-fixed-top">
         <div className="container">

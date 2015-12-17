@@ -90,7 +90,10 @@ let loadMore = function(node, context) {
   node.hidden = false;
   node.fixed = true;
 
-  if (!node.loaded) {
+  if (node.loaded) {
+    Session.set('loading-minor', false);
+  } else {
+    Session.set('loading-minor', true);
     if (_.include(node.labels, 'Repository')) {
       loadRepo(node.propertyMap.full_name, context);
     } else if (_.include(node.labels, 'User')) {
@@ -104,12 +107,12 @@ let loadRepo = function(repoName, context) {
   let {membership, relationships} = context.props;
   Meteor.call('discoverRepo', repoName, {membership, relationships},
     (err, res)=> {
+      Session.set('loading-minor', false);
+      context.setState({loading: false});
       if (err) {
         console.error(err);
-        context.setState({loading: false});
         return;
       }
-      context.setState({loading: false});
       if (res) {
         refreshGraph(res, repoName, context);
       }
@@ -121,12 +124,12 @@ let loadUser = function(username, context) {
   let {membership, relationships} = context.props;
   Meteor.call('discoverUser', username, {membership, relationships},
     (err, res)=> {
+      Session.set('loading-minor', false);
+      context.setState({loading: false});
       if (err) {
         console.error(err);
-        context.setState({loading: false});
         return;
       }
-      context.setState({loading: false});
       if (res) {
         refreshGraph(res, username, context);
       }
