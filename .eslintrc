@@ -106,5 +106,7 @@
     "GithubGraph": true,
     "Nav": true,
     "neo": true,
+    "Discover": true,
+    "GithubDiscoverGraph": true,
   }
 }

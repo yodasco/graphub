@@ -1,6 +1,8 @@
 let config = Meteor.settings.neo4j;
 Meteor.methods({
   getShortestPath(user1, user2) {
+    check(user1, String);
+    check(user2, String);
     let query = `MATCH (u1:User {login: '${user1}'}),
                        (u2:User {login: '${user2}'}),
                        p = shortestPath((u1)-[:CONTRIBUTOR|MEMBER*]-(u2))
@@ -8,10 +10,18 @@ Meteor.methods({
     return runNeo4jQuery(query);
   },
   getAllShortestPaths(user1, user2) {
+    check(user1, String);
+    check(user2, String);
     let query = `MATCH (u1:User {login: '${user1}'}),
                        (u2:User {login: '${user2}'}),
                        p = allShortestPaths((u1)-[:CONTRIBUTOR|MEMBER*]-(u2))
                  RETURN p limit 100`;
+    return runNeo4jQuery(query);
+  },
+  discoverUser(user) {
+    check(user, String);
+    let query = `MATCH (u:User {login: '${user}'})-[rel:MEMBER]->(r:Repository)
+                 return * limit 100`;
     return runNeo4jQuery(query);
   }
 });

@@ -14,24 +14,7 @@ Home = React.createClass({
         </section>
       );
     } else {
-      return (
-        <header>
-          <div className="container">
-            <div className="row">
-              <div className="col-lg-12">
-                <main>
-                  <img className="img-responsive" src="/img/profile.png" alt=""/>
-                  <div className="intro-text">
-                    <span className="name">Explore your GitHub Graph</span>
-                    <hr className="star-light"/>
-                    <span className="skills">Login with GitHub to explore your github graph</span>
-                  </div>
-                </main>
-              </div>
-            </div>
-          </div>
-        </header>
-      );
+      return Home.loginCallToAction;
     }
   },
   getMeteorData() {
@@ -45,5 +28,22 @@ Home = React.createClass({
   getInitialState() {
     return {user1: undefined, user2: undefined};
   },
-
 });
+
+Home.loginCallToAction =
+  <header>
+    <div className="container">
+      <div className="row">
+        <div className="col-lg-12">
+          <main>
+            <img className="img-responsive" src="/img/profile.png" alt=""/>
+            <div className="intro-text">
+              <span className="name">Explore your GitHub Graph</span>
+              <hr className="star-light"/>
+              <span className="skills">Login with GitHub to explore your github graph</span>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </header>;

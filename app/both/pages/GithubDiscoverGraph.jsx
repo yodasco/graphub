@@ -1,37 +1,28 @@
-GithubGraph = React.createClass({
+GithubDiscoverGraph = React.createClass({
   propTypes: {
-    user1: React.PropTypes.string,
-    user2: React.PropTypes.string,
+    user: React.PropTypes.string.isRequired,
   },
   render() {
-    if (!this.state.initialized) {
-      return <img className="img-responsive center-block" src="/img/profile.png" alt=""/>;
-    }
     if (this.state.loading) {
       return (
         <div>
-          <h4 className='text-center'>The shortest path between
-            <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is...
-          </h4>
           <img className="img-responsive center-block image-rotating" src="/img/profile.png" alt=""/>
         </div>
       );
     }
-    let distance = this.state.queryResult[0].graph.relationships.length / 2;
     return (
       <div className='center-block text-center'>
-        <h4>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is <code><strong>{distance}</strong></code></h4>
         <div id='graph'>
           <svg></svg>
         </div>
       </div>
     );
   },
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.user1 && nextProps.user2) {
-      this.setState({loading: true, queryResult: null, initialized: true});
-      Meteor.call('getAllShortestPaths', nextProps.user1,
-                  nextProps.user2,
+  componentDidMount() {
+    let user = this.props.user;
+    if (this.props.user) {
+      this.setState({loading: true, queryResult: null});
+      Meteor.call('discoverUser', user,
         (err, res)=> {
           if (err) {
             console.error(err);
@@ -39,23 +30,22 @@ GithubGraph = React.createClass({
             return;
           }
           this.setState({queryResult: res, loading: false});
-          renderGraphs(res, nextProps.user1, nextProps.user2);
+          renderInitialGraph(res, user);
         }
       );
     } else {
-      this.setState({loading: false, queryResult: null, initialized: false});
+      this.setState({loading: false, queryResult: null});
     }
   },
   getInitialState() {
     return {
       queryResult: null,
       loading: false,
-      initialized: false,
     };
   },
 });
 
-let renderGraphs = function(graphs, user1, user2) {
+let renderInitialGraph = function(graphs, user) {
   $('#graph svg').html('');
   let {width, height} = neo.getGraphDimentions();
   $('#graph svg').width('100%').height(height);
@@ -65,11 +55,8 @@ let renderGraphs = function(graphs, user1, user2) {
     g.addRelationships(graph.graph.relationships.map(neo.CypherGraphModel.convertRelationship(g)));
   });
   g.nodes().forEach(function(node) {
-    if (node.propertyMap.login === user1) {
+    if (node.propertyMap.login === user) {
       node.isStartNode = true;
-    }
-    if (node.propertyMap.login === user2) {
-      node.isEndNode = true;
     }
   });
   let view =  new neo.graphView($('#graph svg')[0], g, new neo.style());
