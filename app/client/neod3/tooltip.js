@@ -1,3 +1,5 @@
+window.neo = window.neo || {};
+
 let tooltip;
 neo.setupTooltip = function(vis) {
   if (!tooltip) {

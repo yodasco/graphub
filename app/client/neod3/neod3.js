@@ -236,6 +236,24 @@ neo.models.Graph = (function() {
     return this.relationshipMap[id];
   };
 
+  // Graph.prototype.union = function(other) {
+  //   let me = this;
+  //   me._nodes.forEach(function(node) {
+  //     if (!other.findNode(node.id)) {
+  //       delete me.nodeMap[node.id];
+  //     }
+  //   });
+  //   me._nodes = _.values(me.nodeMap);
+  //   me.addNodes(other.nodes());
+
+  //   me._relationships.forEach(function(rel) {
+  //     if (!other.findRelationship(rel.id)) {
+  //       delete me.relationshipMap[rel.id];
+  //     }
+  //   });
+  //   me._relationships = _.values(me.relationshipMap);
+  //   me.addRelationships(other.relationships());
+  // };
   return Graph;
 
 })();
@@ -469,7 +487,9 @@ neo.layout = (function() {
       linkDistance = 45;
       d3force = d3.layout.force().linkDistance(function(relationship) {
         return relationship.source.radius + relationship.target.radius + linkDistance;
-      }).charge(-1000);
+      }).charge(function(node) {
+        return node.hidden ? -100 : -1000;
+      });
       newStatsBucket = function() {
         var bucket;
         bucket = {
@@ -2475,6 +2495,9 @@ neo.utils.measureText = (function() {
         },
         'stroke-width': function(node) {
           return viz.style.forNode(node).get('border-width');
+        },
+        opacity: function(node) {
+          return node.hidden ? .1 : 1;
         }
       });
       return circles.exit().remove();
@@ -2494,13 +2517,18 @@ neo.utils.measureText = (function() {
       });
       text.text(function(line) {
         return line.text;
-      }).attr('y', function(line) {
-        return line.baseline;
-      }).attr('font-size', function(line) {
-        return viz.style.forNode(line.node).get('font-size');
       }).attr({
-        'fill': function(line) {
+        y: function(line) {
+          return line.baseline;
+        },
+        'font-size': function(line) {
+          return viz.style.forNode(line.node).get('font-size');
+        },
+        fill: function(line) {
           return viz.style.forNode(line.node).get('text-color-internal');
+        },
+        opacity: function(line) {
+          return line.node.hidden ? .1 : 1;
         }
       });
       return text.exit().remove();
@@ -2539,9 +2567,15 @@ neo.utils.measureText = (function() {
         return [rel];
       });
       paths.enter().append('path').classed('outline', true);
-      paths.attr('fill', function(rel) {
-        return viz.style.forRelationship(rel).get('color');
-      }).attr('stroke', 'none');
+      paths.attr({
+        fill: function(rel) {
+          return viz.style.forRelationship(rel).get('color');
+        },
+        stroke: 'none',
+        opacity: function(rel) {
+          return rel.hidden ? .1 : 1;
+        }
+      });
       return paths.exit().remove();
     },
     onTick: function(selection) {
@@ -2558,27 +2592,34 @@ neo.utils.measureText = (function() {
         return [rel];
       });
       texts.enter().append("text").attr({
-        "text-anchor": "middle"
-      }).attr({
-        'pointer-events': 'none'
-      });
-      texts.attr('font-size', function(rel) {
-        return viz.style.forRelationship(rel).get('font-size');
-      }).attr('fill', function(rel) {
-        return viz.style.forRelationship(rel).get('text-color-' + rel.captionLayout);
+        "text-anchor": "middle",
+        'pointer-events': 'none',
+        'font-size': function(rel) {
+          return viz.style.forRelationship(rel).get('font-size');
+        },
+        fill: function(rel) {
+          return viz.style.forRelationship(rel).get('text-color-' + rel.captionLayout);
+        },
       });
       return texts.exit().remove();
     },
     onTick: function(selection, viz) {
-      return selection.selectAll('text').attr('x', function(rel) {
-        return rel.arrow.midShaftPoint.x;
-      }).attr('y', function(rel) {
-        return rel.arrow.midShaftPoint.y + parseFloat(viz.style.forRelationship(rel).get('font-size')) / 2 - 1;
-      }).attr('transform', function(rel) {
-        if (rel.naturalAngle < 90 || rel.naturalAngle > 270) {
-          return "rotate(180 " + rel.arrow.midShaftPoint.x + " " + rel.arrow.midShaftPoint.y + ")";
-        } else {
-          return null;
+      return selection.selectAll('text').attr({
+        x: function(rel) {
+          return rel.arrow.midShaftPoint.x;
+        },
+        y: function(rel) {
+          return rel.arrow.midShaftPoint.y + parseFloat(viz.style.forRelationship(rel).get('font-size')) / 2 - 1;
+        },
+        transform: function(rel) {
+          if (rel.naturalAngle < 90 || rel.naturalAngle > 270) {
+            return "rotate(180 " + rel.arrow.midShaftPoint.x + " " + rel.arrow.midShaftPoint.y + ")";
+          } else {
+            return null;
+          }
+        },
+        opacity: function(rel) {
+          return rel.hidden ? .1 : 1;
         }
       }).text(function(rel) {
         return rel.shortCaption;

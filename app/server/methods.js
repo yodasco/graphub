@@ -18,9 +18,41 @@ Meteor.methods({
                  RETURN p limit 100`;
     return runNeo4jQuery(query);
   },
-  discoverUser(user) {
+  discoverUser(user, {membership, contributions}) {
     check(user, String);
-    let query = `MATCH (u:User {login: '${user}'})-[rel:MEMBER]->(r:Repository)
+    check(membership, Match.Optional(Boolean));
+    check(contributions, Match.Optional(Boolean));
+    let relationshipTypes = [];
+    if (membership) {
+      relationshipTypes.push('MEMBER');
+    }
+    if (contributions) {
+      relationshipTypes.push('CONTRIBUTOR');
+    }
+    if (relationshipTypes.length === 0) {
+      return;
+    }
+    relationshipTypes = relationshipTypes.join('|');
+    let query = `MATCH (u:User {login: '${user}'})-[rel:${relationshipTypes}]->(r:Repository)
+                 return * limit 100`;
+    return runNeo4jQuery(query);
+  },
+  discoverRepo(repoName, {membership, contributions}) {
+    check(repoName, String);
+    check(membership, Match.Optional(Boolean));
+    check(contributions, Match.Optional(Boolean));
+    let relationshipTypes = [];
+    if (membership) {
+      relationshipTypes.push('MEMBER');
+    }
+    if (contributions) {
+      relationshipTypes.push('CONTRIBUTOR');
+    }
+    if (relationshipTypes.length === 0) {
+      return;
+    }
+    relationshipTypes = relationshipTypes.join('|');
+    let query = `MATCH (r:Repository {full_name: '${repoName}'})<-[rel:${relationshipTypes}]-(u:User)
                  return * limit 100`;
     return runNeo4jQuery(query);
   }
