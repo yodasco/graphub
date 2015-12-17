@@ -1,4 +1,5 @@
 Interesting Queries
+================
 
 
 # All shortest paths b/w rantav and dhh
@@ -39,7 +40,10 @@ match (r1:Repository)-[:FORKED]->(r2:Repository)-[:FORKED]->(r3:Repository)-[:FO
 # Users that starred repos I'm member of
 match (u:User)-[:STAR]->(r:Repository)<-[:MEMBER]-(ran:User {login: 'jondot'}) return * limit 100
 
-# count nodes
+# count languages (limited arbitraty subset)
+match (r:Repository) with r limit 1000 match (r) return r.language as lang, count(*) as cnt order by cnt desc;
+
+# count all nodes
 match n return count(n)
 
 # Top GH users
