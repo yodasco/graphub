@@ -8,6 +8,7 @@ let relationTypes = {
 GithubDiscoverGraph = React.createClass({
   propTypes: _.extend({
     user: React.PropTypes.string.isRequired,
+    randomWalk: React.PropTypes.bool.isRequired,
   }, _.reduce(_.keys(relationTypes).map(function(r) {
     return {[r]: React.PropTypes.bool.isRequired};
   }), function(memo, e) {
@@ -45,7 +46,14 @@ GithubDiscoverGraph = React.createClass({
       }
     });
     let context = this;
-    if (hasAdditions) {
+    let randomWalkJustStarting = false;
+    if (nextProps.randomWalk !== currentProps.randomWalk) {
+      if (nextProps.randomWalk) {
+        randomStep(context);
+        randomWalkJustStarting = true;
+      }
+    }
+    if (hasAdditions && !randomWalkJustStarting && !currentProps.randomWalk) {
       setTimeout(function() {
         loadRelations(context);
       }, 100);
@@ -67,7 +75,7 @@ let loadGraph = function(user, context) {
   }
 };
 let currentGraph, currentView, currentNodeFocus;
-let refreshGraph = function(graphs, loadedNodeName, whatJustLoaded, context) {
+let refreshGraph = function(graphs, loadedNodeName, context) {
   if (!currentView) {
     $('#graph svg').html('');
     let {width, height} = neo.getGraphDimentions();
@@ -88,13 +96,16 @@ let refreshGraph = function(graphs, loadedNodeName, whatJustLoaded, context) {
         node.propertyMap.full_name === loadedNodeName) {
       node.isStartNode = true;
       currentNodeFocus = node;
-      if (!node.loaded) {
-        node.loaded = {};
-      }
-      node.loaded[whatJustLoaded] = true;
     }
   });
   currentView.update();
+  if (context.props.randomWalk) {
+    setTimeout(function() {
+      if (context.props.randomWalk) {
+        randomStep(context);
+      }
+    }, 1000);
+  }
 };
 
 // disects the nodes into three circles. Circle one is all nodes direclty
@@ -173,7 +184,7 @@ let loadRepo = function(repoName, context) {
           return;
         }
         if (res) {
-          refreshGraph(res, repoName, whatToLoad, context);
+          refreshGraph(res, repoName, context);
         }
       }
     );
@@ -192,7 +203,7 @@ let loadUser = function(username, context) {
           return;
         }
         if (res) {
-          refreshGraph(res, username, whatToLoad, context);
+          refreshGraph(res, username, context);
         }
       }
     );
@@ -238,4 +249,12 @@ let pruneDisconnectedNodes = function(g) {
 
 let loadRelations = function(context) {
   loadMore(currentNodeFocus, context);
+};
+
+let randomStep = function(context) {
+  let visibleNodes = currentGraph.nodes().filter(function(n) {
+    return !n.hidden;
+  });
+  let randomNode = Random.choice(visibleNodes);
+  loadMore(randomNode, context);
 };

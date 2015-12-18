@@ -42,13 +42,19 @@ Discover = React.createClass({
             </li>
           </ul>
         </div>;
+      let randomWalk = this.state.randomWalk ?
+        <button className='btn btn-success btn-xs pull-left' onClick={this.stopRandomWalk}>Stop</button> :
+        <button className='btn btn-default btn-xs pull-left' onClick={this.startRandomWalk}>Random walk</button>;
+
       return (
         <section id='graph-section'>
           {options}
+          {randomWalk}
           <div className="container-fluid">
             <GithubDiscoverGraph user={this.data.currentUser.services.github.username}
                 members={this.state.members} contributions={this.state.contributions}
-                forks={this.state.forks} stars={this.state.stars}/>
+                forks={this.state.forks} stars={this.state.stars}
+                randomWalk={this.state.randomWalk}/>
           </div>
         </section>
       );
@@ -68,6 +74,7 @@ Discover = React.createClass({
       contributions: false,
       forks: false,
       stars: false,
+      randomWalk: false,
     };
   },
   onChange() {
@@ -76,5 +83,11 @@ Discover = React.createClass({
     let forks = ReactDOM.findDOMNode(this.refs.forks).checked;
     let stars = ReactDOM.findDOMNode(this.refs.stars).checked;
     this.setState({members, contributions, forks, stars});
+  },
+  startRandomWalk() {
+    this.setState({randomWalk: true});
+  },
+  stopRandomWalk() {
+    this.setState({randomWalk: false});
   }
 });
