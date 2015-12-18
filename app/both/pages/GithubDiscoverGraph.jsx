@@ -1,11 +1,18 @@
+let relationTypes = {
+  contributions: 'CONTRIBUTOR',
+  members: 'MEMBER',
+  forks: 'FORKED',
+  stars: 'STAR'
+};
+
 GithubDiscoverGraph = React.createClass({
-  propTypes: {
+  propTypes: _.extend({
     user: React.PropTypes.string.isRequired,
-    members: React.PropTypes.bool.isRequired,
-    contributions: React.PropTypes.bool.isRequired,
-    forks: React.PropTypes.bool.isRequired,
-    stars: React.PropTypes.bool.isRequired,
-  },
+  }, _.reduce(_.keys(relationTypes).map(function(r) {
+    return {[r]: React.PropTypes.bool.isRequired};
+  }), function(memo, e) {
+    return _.extend(memo, e);
+  })),
   render() {
     if (this.state.loading) {
       return (
@@ -25,6 +32,25 @@ GithubDiscoverGraph = React.createClass({
   componentDidMount() {
     loadGraph(this.props.user, this);
   },
+  componentWillReceiveProps(nextProps) {
+    let currentProps = this.props;
+    let hasAdditions = false;
+    _.keys(relationTypes).forEach(function(relType) {
+      if (nextProps[relType] !== currentProps[relType]) {
+        if (nextProps[relType]) {
+          hasAdditions = true;
+        } else {
+          unloadRelations(relType);
+        }
+      }
+    });
+    let context = this;
+    if (hasAdditions) {
+      setTimeout(function() {
+        loadRelations(context);
+      }, 100);
+    }
+  },
   getInitialState() {
     return {
       loading: false,
@@ -40,7 +66,7 @@ let loadGraph = function(user, context) {
     context.setState({loading: false});
   }
 };
-let currentGraph, currentView;
+let currentGraph, currentView, currentNodeFocus;
 let refreshGraph = function(graphs, loadedNodeName, whatJustLoaded, context) {
   if (!currentView) {
     $('#graph svg').html('');
@@ -61,6 +87,7 @@ let refreshGraph = function(graphs, loadedNodeName, whatJustLoaded, context) {
     if (node.propertyMap.login === loadedNodeName ||
         node.propertyMap.full_name === loadedNodeName) {
       node.isStartNode = true;
+      currentNodeFocus = node;
       if (!node.loaded) {
         node.loaded = {};
       }
@@ -154,19 +181,41 @@ let loadUser = function(username, context) {
 
 let getWhatToLoad = function(context) {
   let what = [];
-  if (context.props.contributions) {
-    what.push('CONTRIBUTOR');
-  }
-  if (context.props.members) {
-    what.push('MEMBER');
-  }
-  if (context.props.forks) {
-    what.push('FORKED');
-  }
-  if (context.props.stars) {
-    what.push('STAR');
-  }
+  _.forEach(context.props, function(v, k) {
+    if (v && relationTypes[k]) {
+      what.push(relationTypes[k]);
+    }
+  });
   if (what.length > 0) {
     return what.join('|');
   }
+};
+
+let unloadRelations = function(relationType) {
+  currentGraph.relationships().forEach(function(rel) {
+    if (rel.type === relationTypes[relationType]) {
+      delete currentGraph.relationshipMap[rel.id];
+    }
+  });
+  currentGraph._relationships = _.values(currentGraph.relationshipMap);
+  pruneDisconnectedNodes(currentGraph);
+  currentView.update();
+};
+
+let pruneDisconnectedNodes = function(g) {
+  let connectedNodes = {};
+  g.relationships().forEach(function(rel) {
+    connectedNodes[rel.source.id] = true;
+    connectedNodes[rel.target.id] = true;
+  });
+  g.nodes().forEach(function(node) {
+    if (!connectedNodes[node.id] && !node.isStartNode) {
+      delete g.nodeMap[node.id];
+    }
+  });
+  g._nodes = _.values(g.nodeMap);
+};
+
+let loadRelations = function(context) {
+  loadMore(currentNodeFocus, context);
 };
