@@ -9,8 +9,8 @@ neo.setupTooltip = function(vis) {
     let html = getTooltipForNode(node);
     tooltip.transition().duration(200).style('opacity', .9);
     tooltip.html(html).
-        style('left', (d3.event.pageX) + 'px').
-        style('top', (d3.event.pageY - 28) + 'px');
+        style('left', (d3.event.pageX + 30) + 'px').
+        style('top', (d3.event.pageY - 23) + 'px');
   });
   vis.on('nodeMouseOut', function(node) {
     tooltip.transition().duration(500).style('opacity', 0);

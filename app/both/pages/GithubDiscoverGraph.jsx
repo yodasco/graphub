@@ -1,8 +1,6 @@
 GithubDiscoverGraph = React.createClass({
   propTypes: {
     user: React.PropTypes.string.isRequired,
-    membership: React.PropTypes.bool.isRequired,
-    contributions: React.PropTypes.bool.isRequired,
   },
   render() {
     if (this.state.loading) {
@@ -17,32 +15,56 @@ GithubDiscoverGraph = React.createClass({
         <div id='graph'>
           <svg></svg>
         </div>
+        <div id='loadMoreWhatDiv'>
+          <button className='btn btn-default btn-block btn-xs' onClick={this.loadMoreMember}>Load more <strong>members</strong></button>
+          <button className='btn btn-default btn-block btn-xs' onClick={this.loadMoreContributor}>Load more <strong>contributions</strong></button>
+          <button className='btn btn-default btn-block btn-xs' onClick={this.loadMoreFork}>Load more <strong>forks</strong></button>
+          <button className='btn btn-default btn-block btn-xs' onClick={this.loadMoreStar}>Load more <strong>stars</strong></button>
+        </div>
       </div>
     );
   },
   componentDidMount() {
-    loadGraph(this.props, this);
-  },
-  componentWillReceiveProps(nextProps) {
-    loadGraph(nextProps, this);
+    loadGraph(this.props.user, this);
+    $(document).mousemove(function(e) {
+      pageMouseX = e.pageX;
+      pageMouseY = e.pageY;
+    }).mouseover();
+
   },
   getInitialState() {
     return {
       loading: false,
     };
   },
+  loadMoreMember(e) {
+    let callback = $('#loadMoreWhatDiv').data('callback');
+    callback('MEMBER');
+  },
+  loadMoreContributor(e) {
+    let callback = $('#loadMoreWhatDiv').data('callback');
+    callback('CONTRIBUTOR');
+  },
+  loadMoreFork(e) {
+    let callback = $('#loadMoreWhatDiv').data('callback');
+    callback('FORKED');
+  },
+  loadMoreStar(e) {
+    let callback = $('#loadMoreWhatDiv').data('callback');
+    callback('STAR');
+  },
 });
 
-let loadGraph = function({user, membership, contributions}, context) {
+let loadGraph = function(user, context) {
   if (user) {
     context.setState({loading: true});
-    loadUser(user, context);
+    loadUser(user, 'MEMBER', context);
   } else {
     context.setState({loading: false});
   }
 };
 let currentGraph, currentView;
-let refreshGraph = function(graphs, loadedNodeName, context) {
+let refreshGraph = function(graphs, loadedNodeName, whatJustLoaded, context) {
   if (!currentView) {
     $('#graph svg').html('');
     let {width, height} = neo.getGraphDimentions();
@@ -51,7 +73,10 @@ let refreshGraph = function(graphs, loadedNodeName, context) {
     currentView =  new neo.graphView($('#graph svg')[0], currentGraph, new neo.style());
     neo.setupTooltip(currentView);
     currentView.on('nodeClicked', function(node) {
-      loadMore(node, context);
+      loadMoreWhat(function(what) {
+        $('#loadMoreWhatDiv').hide();
+        loadMore(node, what, context);
+      });
     });
   }
   graphs.forEach(function(graph) {
@@ -62,19 +87,22 @@ let refreshGraph = function(graphs, loadedNodeName, context) {
     if (node.propertyMap.login === loadedNodeName ||
         node.propertyMap.full_name === loadedNodeName) {
       node.isStartNode = true;
-      node.loaded = true;
+      if (!node.loaded) {
+        node.loaded = {};
+      }
+      node.loaded[whatJustLoaded] = true;
     }
   });
   currentView.update();
 };
 
-let loadMore = function(node, context) {
+let loadMore = function(node, what, context) {
   currentGraph.nodes().forEach(function(n) {
     n.hidden = true;
     n.fixed = false;
   });
   currentGraph.relationships().forEach(function(rel) {
-    if (node.loaded) {
+    if (node.loaded && node.loaded[what]) {
       if (rel.source.id === node.id || rel.target.id === node.id) {
         rel.hidden = rel.source.hidden = rel.target.hidden = false;
       } else {
@@ -90,22 +118,38 @@ let loadMore = function(node, context) {
   node.hidden = false;
   node.fixed = true;
 
-  if (node.loaded) {
+  pruneHidden();
+
+  if (node.loaded && node.loaded[what]) {
     Session.set('loading-minor', false);
   } else {
     Session.set('loading-minor', true);
     if (_.include(node.labels, 'Repository')) {
-      loadRepo(node.propertyMap.full_name, context);
+      loadRepo(node.propertyMap.full_name, what, context);
     } else if (_.include(node.labels, 'User')) {
-      loadUser(node.propertyMap.login, context);
+      loadUser(node.propertyMap.login, what, context);
     }
   }
   currentView.update();
 };
 
-let loadRepo = function(repoName, context) {
-  let {membership, relationships} = context.props;
-  Meteor.call('discoverRepo', repoName, {membership, relationships},
+let pruneHidden = function() {
+  currentGraph.nodes().forEach(function(node) {
+    if (node.hidden) {
+      delete currentGraph.nodeMap[node.id];
+    }
+  });
+  currentGraph._nodes = _.values(currentGraph.nodeMap);
+  currentGraph.relationships().forEach(function(rel) {
+    if (rel.hidden) {
+      delete currentGraph.relationshipMap[rel.id];
+    }
+  });
+  currentGraph._relationships = _.values(currentGraph.relationshipMap);
+};
+
+let loadRepo = function(repoName, what, context) {
+  Meteor.call('discoverRepo', repoName, what,
     (err, res)=> {
       Session.set('loading-minor', false);
       context.setState({loading: false});
@@ -114,15 +158,14 @@ let loadRepo = function(repoName, context) {
         return;
       }
       if (res) {
-        refreshGraph(res, repoName, context);
+        refreshGraph(res, repoName, what, context);
       }
     }
   );
 };
 
-let loadUser = function(username, context) {
-  let {membership, relationships} = context.props;
-  Meteor.call('discoverUser', username, {membership, relationships},
+let loadUser = function(username, what, context) {
+  Meteor.call('discoverUser', username, what,
     (err, res)=> {
       Session.set('loading-minor', false);
       context.setState({loading: false});
@@ -131,9 +174,15 @@ let loadUser = function(username, context) {
         return;
       }
       if (res) {
-        refreshGraph(res, username, context);
+        refreshGraph(res, username, what, context);
       }
     }
   );
+};
 
+let pageMouseX, pageMouseY;
+let loadMoreWhat = function(callback) {
+  let loadMoreWhatDiv = $('#loadMoreWhatDiv');
+  loadMoreWhatDiv.show().offset({left: pageMouseX - 50, top: pageMouseY - 20});
+  loadMoreWhatDiv.data('callback', callback);
 };

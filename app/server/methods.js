@@ -18,45 +18,32 @@ Meteor.methods({
                  RETURN p limit 100`;
     return runNeo4jQuery(query);
   },
-  discoverUser(user, {membership, contributions}) {
+  discoverUser(user, what) {
     check(user, String);
-    check(membership, Match.Optional(Boolean));
-    check(contributions, Match.Optional(Boolean));
-    let relationshipTypes = [];
-    if (membership) {
-      relationshipTypes.push('MEMBER');
-    }
-    if (contributions) {
-      relationshipTypes.push('CONTRIBUTOR');
-    }
-    if (relationshipTypes.length === 0) {
-      return;
-    }
-    relationshipTypes = relationshipTypes.join('|');
-    let query = `MATCH (u:User {login: '${user}'})-[rel:${relationshipTypes}]->(r:Repository)
+    checkWhat(what);
+    let query = `MATCH (u:User {login: '${user}'})-[rel:${what}]->(r:Repository)
                  return * limit 100`;
     return runNeo4jQuery(query);
   },
-  discoverRepo(repoName, {membership, contributions}) {
+  discoverRepo(repoName, what) {
     check(repoName, String);
-    check(membership, Match.Optional(Boolean));
-    check(contributions, Match.Optional(Boolean));
-    let relationshipTypes = [];
-    if (membership) {
-      relationshipTypes.push('MEMBER');
-    }
-    if (contributions) {
-      relationshipTypes.push('CONTRIBUTOR');
-    }
-    if (relationshipTypes.length === 0) {
-      return;
-    }
-    relationshipTypes = relationshipTypes.join('|');
-    let query = `MATCH (r:Repository {full_name: '${repoName}'})<-[rel:${relationshipTypes}]-(u:User)
+    checkWhat(what);
+    let query = `MATCH (r:Repository {full_name: '${repoName}'})<-[rel:${what}]-(u:User)
                  return * limit 100`;
     return runNeo4jQuery(query);
   }
 });
+
+let checkWhat = function(what) {
+  check(what, String);
+  const relationsTypes = ['MEMBER', 'CONTRIBUTOR', 'FORKED', 'STAR'];
+  let whatToLoad = what.split('|');
+  whatToLoad.forEach(function(w) {
+    if (!_.include(relationsTypes, w)) {
+      throw new Meteor.Error('cannot load relation type ' + w);
+    }
+  });
+};
 
 let runNeo4jQuery = function(query) {
   let url = `${config.server}${config.endpoint}/transaction/commit`;
