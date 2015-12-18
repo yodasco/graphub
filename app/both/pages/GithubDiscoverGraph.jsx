@@ -17,13 +17,13 @@ GithubDiscoverGraph = React.createClass({
   render() {
     if (this.state.loading) {
       return (
-        <div>
-          <img className="img-responsive center-block image-rotating" src="/img/profile.png" alt=""/>
+        <div id='GithubDiscoverGraph'>
+          <img className="img-responsive center-block image-rotating" src="/img/profile.png" alt="Loading..."/>
         </div>
       );
     }
     return (
-      <div className='center-block text-center'>
+      <div id='GithubDiscoverGraph' className='center-block text-center'>
         <div id='graph'>
           <svg></svg>
         </div>
@@ -169,7 +169,6 @@ let loadMore = function(node, context) {
   } else if (_.include(node.labels, 'User')) {
     loadUser(node.propertyMap.login, context);
   }
-  currentView.update();
 };
 
 let loadRepo = function(repoName, context) {
