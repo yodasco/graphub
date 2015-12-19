@@ -36,7 +36,7 @@ const USER_ATTRIBUTES = ['created_at', 'avatar_url', 'bio', 'blog', 'company', '
 let enrichUser = function(node) {
   if (needsRefresh(node)) {
     let userApi = github.getUser();
-    userApi.show(node.login, function(err, data) {
+    userApi.show(node.propertyMap.login, function(err, data) {
       if (err) {
         console.error(err);
         return;
