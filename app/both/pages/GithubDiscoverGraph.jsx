@@ -98,6 +98,7 @@ let refreshGraph = function(graphs, loadedNodeName, context) {
       currentNodeFocus = node;
     }
   });
+  GithubEnrichGraph(currentGraph);
   currentView.update();
   if (context.props.randomWalk) {
     setTimeout(function() {
@@ -164,9 +165,9 @@ let hideAndPruneNodes = function(centerNode) {
 let loadMore = function(node, context) {
   hideAndPruneNodes(node);
   Session.set('loading-minor', true);
-  if (_.include(node.labels, 'Repository')) {
+  if (IsRepo(node)) {
     loadRepo(node.propertyMap.full_name, context);
-  } else if (_.include(node.labels, 'User')) {
+  } else if (IsUser(node)) {
     loadUser(node.propertyMap.login, context);
   }
 };

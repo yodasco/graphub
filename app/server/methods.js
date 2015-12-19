@@ -1,4 +1,7 @@
 let config = Meteor.settings.neo4j;
+let seraph = Meteor.npmRequire('seraph');
+let db = seraph(config);
+
 Meteor.methods({
   getShortestPath(user1, user2) {
     check(user1, String);
@@ -31,8 +34,32 @@ Meteor.methods({
     let query = `MATCH (r:Repository {full_name: '${repoName}'})<-[rel:${what}]-(u:User)
                  return * limit 100`;
     return runNeo4jQuery(query);
+  },
+  updateNode(id, nodeData) {
+    check(id, String);
+    check(nodeData, Object);
+    nodeData.id = parseInt(id);
+    removeNulls(nodeData);
+    let res = Async.runSync(function(done) {
+      db.save(nodeData, function(err, data) {
+        if (err) {
+          console.error(err);
+        }
+        done(err, data);
+      });
+    });
+    return res.result;
   }
 });
+
+let removeNulls = function(o) {
+  _.each(o, function(v, k) {
+    if(_.isUndefined(v) || v === null) {
+      delete o[k];
+    }
+  });
+  return o;
+};
 
 let checkWhat = function(what) {
   check(what, String);

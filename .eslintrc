@@ -92,8 +92,11 @@
     "ValidatedMethod": false,
     "Async": false,
     "ReactDOM": false,
-    "d3": false,
     "ReactMeteorData": false,
+
+    // NPM packages used by browserify
+    "Github": true,
+    "d3": true,
 
     "Header": true,
     "LoginButtons": true,
@@ -109,5 +112,8 @@
     "Discover": true,
     "GithubDiscoverGraph": true,
     "Footer": true,
+    "GithubEnrichGraph": true,
+    "IsRepo": true,
+    "IsUser": true,
   }
 }

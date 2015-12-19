@@ -20,7 +20,7 @@ neo.setupTooltip = function(vis) {
 let getTooltipForNode = function(node) {
   let html = [];
   let pmap = node.propertyMap;
-  if (_.include(node.labels, 'Repository')) {
+  if (IsRepo(node)) {
     html.push(`<div class='name'>${pmap.full_name}</div>`);
     if (pmap.stargazers_count) {
       html.push(`<div class='stars'><i class="fa fa-star"></i> ${pmap.stargazers_count}</div>`);
@@ -32,7 +32,7 @@ let getTooltipForNode = function(node) {
       html.push(`<div class='language'><i class="fa fa-language"></i> ${pmap.language}</div>`);
     }
   }
-  if (_.include(node.labels, 'User')) {
+  if (IsUser(node)) {
     if (pmap.avatar_url) {
       html.push(`<img class='img-rounded pull-right photo' src='${pmap.avatar_url}'/>`);
     }

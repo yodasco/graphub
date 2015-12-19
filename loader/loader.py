@@ -138,7 +138,8 @@ def add_user(user):
     USERS.put(login, user_node)
   add_properties(user_node, user, ['name', 'company', 'location', 'blog',
                  'email', 'gravatar_id', 'type', 'avatar_url', 'html_url',
-                 'site_admin', 'id'])
+                 'site_admin'])
+  user_node.properties['ghId'] = user.get('id';
   return user_node
 
 def get_user(login):
@@ -166,7 +167,8 @@ def add_repo(repo):
     repo_node = graph.merge_one('Repository', 'full_name', full_name)
     REPOS.put(full_name, repo_node)
   add_properties(repo_node, repo, ['stargazers_count', 'watchers_count',
-                 'forks_count', 'language', 'id'])
+                 'forks_count', 'language'])
+  repo_node.properties['ghId'] = repo.get('id')
   return repo_node
 
 def add_properties(db_node, source_dict, property_names):

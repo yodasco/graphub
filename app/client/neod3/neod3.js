@@ -573,19 +573,19 @@ neo.models.Node = (function() {
     this.id = id;
     this.labels = labels;
     this.propertyMap = properties;
-    this.propertyList = (function() {
-      var results;
-      results = [];
-      for (key in properties) {
-        if (!hasProp.call(properties, key)) continue;
-        value = properties[key];
-        results.push({
-          key: key,
-          value: value
-        });
-      }
-      return results;
-    })();
+    // this.propertyList = (function() {
+    //   var results;
+    //   results = [];
+    //   for (key in properties) {
+    //     if (!hasProp.call(properties, key)) continue;
+    //     value = properties[key];
+    //     results.push({
+    //       key: key,
+    //       value: value
+    //     });
+    //   }
+    //   return results;
+    // })();
   }
 
   Node.prototype.toJSON = function() {
@@ -625,20 +625,20 @@ neo.models.Relationship = (function() {
     this.target = target;
     this.type = type;
     this.propertyMap = properties;
-    this.propertyList = (function() {
-      var ref, results;
-      ref = this.propertyMap;
-      results = [];
-      for (key in ref) {
-        if (!hasProp.call(ref, key)) continue;
-        value = ref[key];
-        results.push({
-          key: key,
-          value: value
-        });
-      }
-      return results;
-    }).call(this);
+    // this.propertyList = (function() {
+    //   var ref, results;
+    //   ref = this.propertyMap;
+    //   results = [];
+    //   for (key in ref) {
+    //     if (!hasProp.call(ref, key)) continue;
+    //     value = ref[key];
+    //     results.push({
+    //       key: key,
+    //       value: value
+    //     });
+    //   }
+    //   return results;
+    // }).call(this);
   }
 
   Relationship.prototype.toJSON = function() {
