@@ -49,6 +49,19 @@ Meteor.methods({
       });
     });
     return res.result;
+  },
+  deleteNodeAndRelations(id) {
+    check(id, String);
+    let res = Async.runSync(function(done) {
+      let force = true;
+      db.delete(id, force, function(err, data) {
+        if (err) {
+          console.error(err);
+        }
+        done(err, data);
+      });
+    });
+    return res.result;
   }
 });
 
