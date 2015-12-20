@@ -236,24 +236,38 @@ neo.models.Graph = (function() {
     return this.relationshipMap[id];
   };
 
-  // Graph.prototype.union = function(other) {
-  //   let me = this;
-  //   me._nodes.forEach(function(node) {
-  //     if (!other.findNode(node.id)) {
-  //       delete me.nodeMap[node.id];
-  //     }
-  //   });
-  //   me._nodes = _.values(me.nodeMap);
-  //   me.addNodes(other.nodes());
+  Graph.prototype.findNodeByAtts = function(nodeAtts) {
+  };
 
-  //   me._relationships.forEach(function(rel) {
-  //     if (!other.findRelationship(rel.id)) {
-  //       delete me.relationshipMap[rel.id];
-  //     }
-  //   });
-  //   me._relationships = _.values(me.relationshipMap);
-  //   me.addRelationships(other.relationships());
-  // };
+  // Determine if a node matches a predicate
+  Graph.prototype.nodePredicate = function(node, predicate) {
+    if (_.keys(predicate).length < 1) {
+      // Don't allow empty predicates
+      return false;
+    }
+    if (predicate.id) {
+      return predicate.id === node.id;
+    } else {
+      let match = true;
+      _.each(predicate, function(v, k) {
+        if (node.propertyMap[k] !== v) {
+          match = false;
+        }
+      });
+      return match;
+    }
+  };
+
+  // Finds a relationship by source and target attributes (which may include IDs)
+  Graph.prototype.findRelationshipsBySourceAndTarget = function(relType, sourceAtts, targetAtts) {
+    return this._relationships.filter((relationship) => {
+      if (relType === relationship.type) {
+        let sourceMatches = this.nodePredicate(relationship.source, sourceAtts);
+        let targetMatches = this.nodePredicate(relationship.target, targetAtts);
+        return sourceMatches && targetMatches;
+      }
+    });
+  };
   return Graph;
 
 })();
@@ -625,20 +639,6 @@ neo.models.Relationship = (function() {
     this.target = target;
     this.type = type;
     this.propertyMap = properties;
-    // this.propertyList = (function() {
-    //   var ref, results;
-    //   ref = this.propertyMap;
-    //   results = [];
-    //   for (key in ref) {
-    //     if (!hasProp.call(ref, key)) continue;
-    //     value = ref[key];
-    //     results.push({
-    //       key: key,
-    //       value: value
-    //     });
-    //   }
-    //   return results;
-    // }).call(this);
   }
 
   Relationship.prototype.toJSON = function() {

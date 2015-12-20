@@ -38,6 +38,7 @@ Meteor.methods({
   updateNode(id, nodeData) {
     check(id, String);
     check(nodeData, Object);
+    this.unblock();
     nodeData.id = parseInt(id);
     removeNulls(nodeData);
     let res = Async.runSync(function(done) {
@@ -52,6 +53,7 @@ Meteor.methods({
   },
   deleteNodeAndRelations(id) {
     check(id, String);
+    this.unblock();
     let res = Async.runSync(function(done) {
       let force = true;
       db.delete(id, force, function(err, data) {
@@ -62,8 +64,55 @@ Meteor.methods({
       });
     });
     return res.result;
-  }
+  },
+  updateAndAddContributions(contributions) {
+    check(contributions, [Object]);
+    this.unblock();
+    contributions.forEach(function(contribution) {
+      contribution.contributor = addOrUpdateContributor(contribution.contributor);
+      let rel = addOrUpdateContribution(contribution);
+    });
+  },
 });
+
+let addOrUpdateContribution = function(contribution) {
+  let res = Async.runSync(function(done) {
+    let updateQuery = `match (u:User)-[rel:CONTRIBUTOR]->(r:Repository)
+         where id(u) = ${contribution.contributor.id}
+           and id(r) = ${contribution.repo.id}
+         set rel.total = ${contribution.total},
+           rel.additions = ${contribution.additions},
+           rel.deletions = ${contribution.deletions}
+         return rel`;
+    console.log(updateQuery);
+    db.query(updateQuery, done);
+  });
+  return res.results;
+};
+
+let addOrUpdateContributor = function(contributorData) {
+  let res = Async.runSync(function(done) {
+    db.find({login: contributorData.login}, 'User', function(err, data) {
+      if (err) {
+        done(err, null);
+        return;
+      }
+      if (data && data.length) {
+        // Node found - update it by id
+        contributorData.id = data[0].id;
+        db.save(contributorData, function(err, res) {
+          // When updating a node - seraph would not return its data. So we use
+          // the update object to return the result
+          done(err, contributorData);
+        });
+      } else {
+        // Node not found - create it (saving without an ID creates a node)
+        db.save(contributorData, 'User', done);
+      }
+    });
+  });
+  return res.result;
+};
 
 let removeNulls = function(o) {
   _.each(o, function(v, k) {
