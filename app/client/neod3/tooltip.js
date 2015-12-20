@@ -35,7 +35,13 @@ let getTooltipForRel = function(rel) {
   let pmap = rel.propertyMap;
   if (rel.type === 'CONTRIBUTOR') {
     if (pmap.total) {
-      html.push(`<div><strong>${escapeHtml(pmap.total)} commits</strong></div>`);
+      let text;
+      if (pmap.total === 1) {
+        text = 'commit';
+      } else {
+        text = 'commits';
+      }
+      html.push(`<div><strong>${escapeHtml(pmap.total)} ${text}</strong></div>`);
     }
     if (pmap.additions) {
       html.push(`<div><i class="fa fa-plus"></i> ${escapeHtml(pmap.additions)}</div>`);
