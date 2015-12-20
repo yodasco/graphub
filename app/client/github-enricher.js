@@ -36,17 +36,19 @@ let enrichRepo = function(node, graph) {
         console.log(err);
         return;
       }
-      _.extend(node.propertyMap, res);
-      if (res.contributors) {
-        res.contributors.forEach(function(contributor) {
-          let relationships = graph.findRelationshipsBySourceAndTarget('CONTRIBUTOR',
-            {login: contributor.login},
-            {'full_name': node.propertyMap.full_name});
-          if (relationships && relationships.length) {
-            let rel = relationships[0];
-            rel.propertyMap.contributions = contributor.contributions;
-          }
-        });
+      if (res) {
+        _.extend(node.propertyMap, res);
+        if (res.contributors) {
+          res.contributors.forEach(function(contributor) {
+            let relationships = graph.findRelationshipsBySourceAndTarget('CONTRIBUTOR',
+              {login: contributor.login},
+              {'full_name': node.propertyMap.full_name});
+            if (relationships && relationships.length) {
+              let rel = relationships[0];
+              rel.propertyMap.contributions = contributor.contributions;
+            }
+          });
+        }
       }
     });
   }

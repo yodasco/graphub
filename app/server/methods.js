@@ -74,8 +74,13 @@ Meteor.methods({
       if (e.code === 404) {
         // Repo was deleted or for some other reason - not found. Delete it
         deleteNodeAndRelations(nodeId);
-        throw new Meteor.Error(e);
+        return;
       }
+      throw new Meteor.Error(e);
+    }
+    if (repoData.message === 'Moved Permanently') {
+      deleteNodeAndRelations(nodeId);
+      return;
     }
     let reducedRepo = pluckAttributes(repoData, REPO_ATTRIBUTES);
     reducedRepo.ghId = repoData.id;
