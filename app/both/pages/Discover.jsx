@@ -40,6 +40,12 @@ Discover = React.createClass({
                 </label>
               </div>
             </li>
+            <li>
+              <label>Start from
+                <input type="text" onKeyDown={this.onStartNodeKeyPress} defaultValue={this.data.startNode}
+                  ref='startNode'/>
+              </label>
+            </li>
           </ul>
         </div>;
       let randomWalk = this.state.randomWalk ?
@@ -51,7 +57,7 @@ Discover = React.createClass({
           {options}
           {randomWalk}
           <div className="container-fluid">
-            <GithubDiscoverGraph user={this.data.currentUser.services.github.username}
+            <GithubDiscoverGraph startNode={this.data.startNode}
                 members={this.state.members} contributions={this.state.contributions}
                 forks={this.state.forks} stars={this.state.stars}
                 randomWalk={this.state.randomWalk}/>
@@ -63,13 +69,18 @@ Discover = React.createClass({
     }
   },
   getMeteorData() {
-    return {
-      currentUser: Meteor.user()
-    };
+    let user = Meteor.user();
+    if (user) {
+      let startNode = this.state.startNode || user.services.github.username;
+      return {
+        currentUser: user,
+        startNode
+      };
+    }
   },
   getInitialState() {
     return {
-      user: null,
+      startNode: null,
       members: true,
       contributions: false,
       forks: false,
@@ -83,6 +94,15 @@ Discover = React.createClass({
     let forks = ReactDOM.findDOMNode(this.refs.forks).checked;
     let stars = ReactDOM.findDOMNode(this.refs.stars).checked;
     this.setState({members, contributions, forks, stars});
+  },
+  onStartNodeKeyPress(e) {
+    if (e.keyCode === 13) {
+      // Enter pressed
+      let startNode = ReactDOM.findDOMNode(this.refs.startNode).value.trim();
+      if (startNode) {
+        this.setState({startNode});
+      }
+    }
   },
   startRandomWalk() {
     this.setState({randomWalk: true});

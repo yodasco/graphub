@@ -7,7 +7,7 @@ let relationTypes = {
 
 GithubDiscoverGraph = React.createClass({
   propTypes: _.extend({
-    user: React.PropTypes.string.isRequired,
+    startNode: React.PropTypes.string.isRequired,
     randomWalk: React.PropTypes.bool.isRequired,
   }, _.reduce(_.keys(relationTypes).map(function(r) {
     return {[r]: React.PropTypes.bool.isRequired};
@@ -31,7 +31,7 @@ GithubDiscoverGraph = React.createClass({
     );
   },
   componentDidMount() {
-    loadGraph(this.props.user, this);
+    loadGraph(this.props.startNode, this);
   },
   componentWillReceiveProps(nextProps) {
     let currentProps = this.props;
@@ -53,7 +53,16 @@ GithubDiscoverGraph = React.createClass({
         randomWalkJustStarting = true;
       }
     }
-    if (hasAdditions && !randomWalkJustStarting && !currentProps.randomWalk) {
+    let startNodeChanged = nextProps.startNode !== currentProps.startNode;
+    if (startNodeChanged) {
+      setTimeout(function() {
+        loadGraph(nextProps.startNode, context);
+      }, 100);
+      return;
+    }
+    if (hasAdditions &&
+        !randomWalkJustStarting &&
+        !currentProps.randomWalk) {
       setTimeout(function() {
         loadRelations(context);
       }, 100);
@@ -66,10 +75,16 @@ GithubDiscoverGraph = React.createClass({
   },
 });
 
-let loadGraph = function(user, context) {
-  if (user) {
+let loadGraph = function(startNode, context) {
+  if (startNode) {
     context.setState({loading: true});
-    loadUser(user, context);
+    currentView = null;
+    currentGraph = null;
+    if (startNode.indexOf('/') > 0) {
+      loadRepo(startNode, context);
+    } else {
+      loadUser(startNode, context);
+    }
   } else {
     context.setState({loading: false});
   }

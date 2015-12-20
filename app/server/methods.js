@@ -84,7 +84,6 @@ let addOrUpdateContribution = function(contribution) {
            rel.additions = ${contribution.additions},
            rel.deletions = ${contribution.deletions}
          return rel`;
-    console.log(updateQuery);
     db.query(updateQuery, done);
   });
   return res.results;
