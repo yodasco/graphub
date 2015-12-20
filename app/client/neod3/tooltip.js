@@ -34,20 +34,14 @@ let getTooltipForRel = function(rel) {
   let html = [];
   let pmap = rel.propertyMap;
   if (rel.type === 'CONTRIBUTOR') {
-    if (pmap.total) {
+    if (pmap.contributions) {
       let text;
-      if (pmap.total === 1) {
-        text = 'commit';
+      if (pmap.contributions === 1) {
+        text = 'contribution';
       } else {
-        text = 'commits';
+        text = 'contributions';
       }
-      html.push(`<div><strong>${escapeHtml(pmap.total)} ${text}</strong></div>`);
-    }
-    if (pmap.additions) {
-      html.push(`<div><i class="fa fa-plus"></i> ${escapeHtml(pmap.additions)}</div>`);
-    }
-    if (pmap.deletions) {
-      html.push(`<div><i class="fa fa-minus"></i> ${escapeHtml(pmap.deletions)}</div>`);
+      html.push(`<div><strong>${escapeHtml(pmap.contributions)} ${text}</strong></div>`);
     }
   }
   return html.join('');

@@ -1,6 +1,13 @@
 let config = Meteor.settings.neo4j;
-let seraph = Meteor.npmRequire('seraph');
-let db = seraph(config);
+let GitHubApi = Meteor.npmRequire('github');
+
+let getNeo4j = function(config) {
+  let seraph = Meteor.npmRequire('seraph');
+  let db = seraph(config);
+  return Async.wrap(db, ['save', 'find', 'query', 'delete', 'relate']);
+};
+
+let db = getNeo4j(config);
 
 Meteor.methods({
   getShortestPath(user1, user2) {
@@ -35,82 +42,156 @@ Meteor.methods({
                  return * limit 100`;
     return runNeo4jQuery(query);
   },
-  updateNode(id, nodeData) {
-    check(id, String);
-    check(nodeData, Object);
+  enrichUser(nodeId, login) {
+    check(nodeId, String);
+    check(login, String);
+    check(this.userId, String);
     this.unblock();
-    nodeData.id = parseInt(id);
-    removeNulls(nodeData);
-    let res = Async.runSync(function(done) {
-      db.save(nodeData, function(err, data) {
-        if (err) {
-          console.error(err);
-        }
-        done(err, data);
+    let gh = getGithubApi(this.userId);
+    let user = gh.user.getFrom({user: login});
+    if (user) {
+      let reducedUser = pluckAttributes(user, USER_ATTRIBUTES);
+      reducedUser.ghId = user.id;
+      reducedUser.id = nodeId;
+      reducedUser.login = login;
+      later(function() {
+        updateNode(reducedUser);
       });
-    });
-    return res.result;
+      return reducedUser;
+    }
   },
-  deleteNodeAndRelations(id) {
-    check(id, String);
+  enrichRepo(nodeId, repoFullName) {
+    check(nodeId, String);
+    check(repoFullName, String);
+    check(this.userId, String);
     this.unblock();
-    let res = Async.runSync(function(done) {
-      let force = true;
-      db.delete(id, force, function(err, data) {
-        if (err) {
-          console.error(err);
-        }
-        done(err, data);
-      });
+    let gh = getGithubApi(this.userId);
+    let [user, repo] = repoFullName.split('/');
+    let repoData;
+    try {
+      repoData = gh.repos.get({user, repo});
+    } catch(e) {
+      if (e.code === 404) {
+        // Repo was deleted or for some other reason - not found. Delete it
+        deleteNodeAndRelations(nodeId);
+        throw new Meteor.Error(e);
+      }
+    }
+    let reducedRepo = pluckAttributes(repoData, REPO_ATTRIBUTES);
+    reducedRepo.ghId = repoData.id;
+    reducedRepo.id = nodeId;
+    reducedRepo['full_name'] = repoFullName;
+    later(function() {
+      updateNode(reducedRepo);
     });
-    return res.result;
-  },
-  updateAndAddContributions(contributions) {
-    check(contributions, [Object]);
-    this.unblock();
-    contributions.forEach(function(contribution) {
-      contribution.contributor = addOrUpdateContributor(contribution.contributor);
-      let rel = addOrUpdateContribution(contribution);
+    let contributors = gh.repos.getContributors({user, repo});
+    let withContributions = USER_ATTRIBUTES.concat(['contributions', 'login']);
+    contributors = contributors.map(function(contributor) {
+      let ret = pluckAttributes(contributor, withContributions);
+      ret.ghId = contributor.id;
+      return ret;
     });
+    reducedRepo.contributors = contributors;
+    later(function() {
+      updateAndAddContributors(nodeId, contributors);
+    });
+    return reducedRepo;
   },
 });
 
-let addOrUpdateContribution = function(contribution) {
-  let res = Async.runSync(function(done) {
-    let updateQuery = `match (u:User)-[rel:CONTRIBUTOR]->(r:Repository)
-         where id(u) = ${contribution.contributor.id}
-           and id(r) = ${contribution.repo.id}
-         set rel.total = ${contribution.total},
-           rel.additions = ${contribution.additions},
-           rel.deletions = ${contribution.deletions}
-         return rel`;
-    db.query(updateQuery, done);
+let later = function(func) {
+  return Meteor.setTimeout(func, 0);
+};
+
+let updateAndAddContributors = function(repoId, contributors) {
+  check(repoId, Match.OneOf(String, Match.Integer));
+  check(contributors, [Object]);
+  contributors.forEach(function(contributor) {
+    let contributions = contributor.contributions;
+    delete contributor.contributions;
+    let contributorNode = addOrUpdateContributor(contributor);
+    let rel = addOrUpdateContribution(contributorNode.id,
+                                      {contributions},
+                                      repoId);
   });
-  return res.results;
+};
+
+let deleteNodeAndRelations = function(id) {
+  check(id, Match.OneOf(String, Match.Integer));
+  let force = true; // Delete relationships as well
+  return db.delete(id, force);
+};
+
+let updateNode = function(nodeData) {
+  check(nodeData, Object);
+  check(nodeData.id, Match.OneOf(Match.Integer, String));
+  nodeData.id = parseInt(nodeData.id);
+  removeNulls(nodeData);
+  return db.save(nodeData);
+};
+
+const USER_ATTRIBUTES = ['created_at', 'avatar_url', 'bio', 'blog', 'company', 'email',
+  'followers', 'hireable', 'html_url', 'location', 'name',
+  'public_gists', 'public_repos', 'type'];
+const REPO_ATTRIBUTES = ['created_at', 'default_branch', 'description', 'fork',
+  'forks_count', 'homepage', 'html_url', 'language', 'name', 'network_count',
+  'pushed_at', 'size', 'stargazers_count', 'subscribers_count'];
+
+let pluckAttributes = function(obj, attributeNames) {
+  let res = {};
+  attributeNames.forEach(function(att) {
+    if (obj[att]) {
+      res[att] = obj[att];
+    }
+  });
+  return res;
+};
+
+let getGithubApi = function(userId) {
+  check(userId, String);
+  let user = Meteor.users.findOne({_id: userId},
+                                  {fields: {'services.github': 1}});
+  check(user, Object);
+  let github = new GitHubApi({
+    version: '3.0.0',
+    debug: false,
+  });
+  github.authenticate({
+    type: 'oauth',
+    token: user.services.github.accessToken
+  });
+
+  let wrappedUserApi = Async.wrap(github.user, ['getFrom']);
+  let wrappedReposApi = Async.wrap(github.repos, ['get', 'getContributors']);
+  return {user: wrappedUserApi, repos: wrappedReposApi};
+};
+
+let addOrUpdateContribution = function(userId, properties, repoId) {
+  let updateQuery = `match (u:User)-[rel:CONTRIBUTOR]->(r:Repository)
+       where id(u) = ${userId}
+         and id(r) = ${repoId}
+       set rel.contributions = ${properties.contributions}
+       return rel`;
+  let ret = db.query(updateQuery);
+  if (ret && ret.length > 0) {
+    // relationship already exists. Return it
+    return ret[0];
+  }
+  // Create relationship
+  return db.relate(userId, 'CONTRIBUTOR', repoId, properties);
 };
 
 let addOrUpdateContributor = function(contributorData) {
-  let res = Async.runSync(function(done) {
-    db.find({login: contributorData.login}, 'User', function(err, data) {
-      if (err) {
-        done(err, null);
-        return;
-      }
-      if (data && data.length) {
-        // Node found - update it by id
-        contributorData.id = data[0].id;
-        db.save(contributorData, function(err, res) {
-          // When updating a node - seraph would not return its data. So we use
-          // the update object to return the result
-          done(err, contributorData);
-        });
-      } else {
-        // Node not found - create it (saving without an ID creates a node)
-        db.save(contributorData, 'User', done);
-      }
-    });
-  });
-  return res.result;
+  let data = db.find({login: contributorData.login}, 'User');
+  if (data && data.length) {
+    // Node found - update it by id
+    contributorData.id = data[0].id;
+    db.save(contributorData);
+    return contributorData;
+  } else {
+    // Node not found - create it (saving without an ID creates a node)
+    return db.save(contributorData, 'User');
+  }
 };
 
 let removeNulls = function(o) {

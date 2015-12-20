@@ -3,5 +3,5 @@
   "externalify": "0.1.0",
   "seraph": "0.14.0",
   "d3": "3.5.10",
-  "github-api": "0.10.6"
+  "github": "0.2.4"
 }
