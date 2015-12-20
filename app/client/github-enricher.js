@@ -73,7 +73,7 @@ let enrichRepo = function(node, graph) {
       node.propertyMap.lastLoadedFromGithub = Date.now();
       data.ghId = data.id;
       copyAttributes(node.propertyMap, data, REPO_ATTRIBUTES);
-      // propogateDataBack(node);
+      propogateDataBack(node);
     });
 
     // and get user contributions
