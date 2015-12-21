@@ -28,18 +28,22 @@ Meteor.methods({
                  RETURN p limit 100`;
     return runNeo4jQuery(query);
   },
-  discoverUser(user, what) {
+  discoverUser(user, what, limit) {
     check(user, String);
     checkWhat(what);
+    check(limit, Match.Integer);
+    limit = Math.min(limit, 100);
     let query = `MATCH (u:User {login: '${user}'})-[rel:${what}]->(r:Repository)
-                 return * limit 100`;
+                 return * limit ${limit}`;
     return runNeo4jQuery(query);
   },
-  discoverRepo(repoName, what) {
+  discoverRepo(repoName, what, limit) {
     check(repoName, String);
     checkWhat(what);
-    let query = `MATCH (r:Repository {full_name: '${repoName}'})<-[rel:${what}]-(u:User)
-                 return * limit 100`;
+    check(limit, Match.Integer);
+    limit = Math.min(limit, 100);
+    let query = `MATCH (r:Repository {full_name: '${repoName}'})-[rel:${what}]-(n)
+                 return * limit ${limit}`;
     return runNeo4jQuery(query);
   },
   enrichUser(nodeId, login) {
@@ -48,7 +52,17 @@ Meteor.methods({
     check(this.userId, String);
     this.unblock();
     let gh = getGithubApi(this.userId);
-    let user = gh.user.getFrom({user: login});
+    let user;
+    try {
+      user = gh.user.getFrom({user: login});
+    } catch (e) {
+      if (e.code === 404) {
+        // User was deleted or for some other reason - not found. Delete it
+        deleteNodeAndRelations(nodeId);
+        return;
+      }
+      throw new Meteor.Error(JSON.stringify(e));
+    }
     if (user) {
       let reducedUser = pluckAttributes(user, USER_ATTRIBUTES);
       reducedUser.ghId = user.id;
@@ -76,9 +90,11 @@ Meteor.methods({
         deleteNodeAndRelations(nodeId);
         return;
       }
-      throw new Meteor.Error(e);
+      throw new Meteor.Error(JSON.stringify(e));
     }
     if (repoData.message === 'Moved Permanently') {
+      // If a repo was moved - delete it. It surely had already been added at
+      // its new destination (don't try to merge or do anything smart...)
       deleteNodeAndRelations(nodeId);
       return;
     }

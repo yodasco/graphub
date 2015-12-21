@@ -8,6 +8,7 @@ let relationTypes = {
 GithubDiscoverGraph = React.createClass({
   propTypes: _.extend({
     startNode: React.PropTypes.string.isRequired,
+    limit: React.PropTypes.number.isRequired,
     randomWalk: React.PropTypes.bool.isRequired,
   }, _.reduce(_.keys(relationTypes).map(function(r) {
     return {[r]: React.PropTypes.bool.isRequired};
@@ -31,7 +32,7 @@ GithubDiscoverGraph = React.createClass({
     );
   },
   componentDidMount() {
-    loadGraph(this.props.startNode, this);
+    loadGraph(this.props, this);
   },
   componentWillReceiveProps(nextProps) {
     let currentProps = this.props;
@@ -54,9 +55,10 @@ GithubDiscoverGraph = React.createClass({
       }
     }
     let startNodeChanged = nextProps.startNode !== currentProps.startNode;
-    if (startNodeChanged) {
+    let limitChanged = nextProps.limit !== currentProps.limit;
+    if (startNodeChanged || limitChanged) {
       setTimeout(function() {
-        loadGraph(nextProps.startNode, context);
+        loadGraph(nextProps, context);
       }, 100);
       return;
     }
@@ -75,15 +77,16 @@ GithubDiscoverGraph = React.createClass({
   },
 });
 
-let loadGraph = function(startNode, context) {
+let loadGraph = function(props, context) {
+  let startNode = props.startNode;
   if (startNode) {
     context.setState({loading: true});
     currentView = null;
     currentGraph = null;
     if (startNode.indexOf('/') > 0) {
-      loadRepo(startNode, context);
+      loadRepo(props, context);
     } else {
-      loadUser(startNode, context);
+      loadUser(props, context);
     }
   } else {
     context.setState({loading: false});
@@ -187,10 +190,12 @@ let loadMore = function(node, context) {
   }
 };
 
-let loadRepo = function(repoName, context) {
-  let whatToLoad = getWhatToLoad(context);
+let loadRepo = function(props, context) {
+  let repoName = props.startNode;
+  let limit = props.limit;
+  let whatToLoad = getWhatToLoad(props);
   if (whatToLoad) {
-    Meteor.call('discoverRepo', repoName, whatToLoad,
+    Meteor.call('discoverRepo', repoName, whatToLoad, limit,
       (err, res)=> {
         Session.set('loading-minor', false);
         context.setState({loading: false});
@@ -206,10 +211,12 @@ let loadRepo = function(repoName, context) {
   }
 };
 
-let loadUser = function(username, context) {
-  let whatToLoad = getWhatToLoad(context);
+let loadUser = function(props, context) {
+  let username = props.startNode;
+  let limit = props.limit;
+  let whatToLoad = getWhatToLoad(props);
   if (whatToLoad) {
-    Meteor.call('discoverUser', username, whatToLoad,
+    Meteor.call('discoverUser', username, whatToLoad, limit,
       (err, res)=> {
         Session.set('loading-minor', false);
         context.setState({loading: false});
@@ -225,9 +232,9 @@ let loadUser = function(username, context) {
   }
 };
 
-let getWhatToLoad = function(context) {
+let getWhatToLoad = function(props) {
   let what = [];
-  _.forEach(context.props, function(v, k) {
+  _.forEach(props, function(v, k) {
     if (v && relationTypes[k]) {
       what.push(relationTypes[k]);
     }
