@@ -59,7 +59,7 @@ const REFRESH_TIME_MILLI = 1000 * 60 * 60 * 24 * 7;
 
 let needsRefresh = function(node) {
   if (node.propertyMap.lastLoadedFromGithub &&
-      node.propertyMap.lastLoadedFromGithub >  Date.now() - REFRESH_TIME_MILLI) {
+      node.propertyMap.lastLoadedFromGithub > Date.now() - REFRESH_TIME_MILLI) {
     return false;
   }
   return true;

@@ -29,6 +29,7 @@ Meteor.methods({
     return runNeo4jQuery(query);
   },
   discoverUser(user, what, limit) {
+    console.log({discoverUser: user});
     check(user, String);
     checkWhat(what);
     check(limit, Match.Integer);
@@ -38,6 +39,7 @@ Meteor.methods({
     return runNeo4jQuery(query);
   },
   discoverRepo(repoName, what, limit) {
+    console.log({discoverRepo: repoName});
     check(repoName, String);
     checkWhat(what);
     check(limit, Match.Integer);
@@ -47,6 +49,7 @@ Meteor.methods({
     return runNeo4jQuery(query);
   },
   enrichUser(nodeId, login) {
+    console.log({enrichUser: login});
     check(nodeId, String);
     check(login, String);
     check(this.userId, String);
@@ -68,6 +71,7 @@ Meteor.methods({
       reducedUser.ghId = user.id;
       reducedUser.id = nodeId;
       reducedUser.login = login;
+      reducedUser.lastLoadedFromGithub = Date.now();
       later(function() {
         updateNode(reducedUser);
       });
@@ -75,6 +79,7 @@ Meteor.methods({
     }
   },
   enrichRepo(nodeId, repoFullName) {
+    console.log({enrichRepo: repoFullName});
     check(nodeId, String);
     check(repoFullName, String);
     check(this.userId, String);
@@ -102,6 +107,7 @@ Meteor.methods({
     reducedRepo.ghId = repoData.id;
     reducedRepo.id = nodeId;
     reducedRepo['full_name'] = repoFullName;
+    reducedRepo.lastLoadedFromGithub = Date.now();
     later(function() {
       updateNode(reducedRepo);
     });
@@ -131,8 +137,9 @@ let updateAndAddContributors = function(repoId, contributors) {
     let contributions = contributor.contributions;
     delete contributor.contributions;
     let contributorNode = addOrUpdateContributor(contributor);
+    let lastLoadedFromGithub = Date.now();
     let rel = addOrUpdateContribution(contributorNode.id,
-                                      {contributions},
+                                      {contributions, lastLoadedFromGithub},
                                       repoId);
   });
 };
@@ -140,7 +147,15 @@ let updateAndAddContributors = function(repoId, contributors) {
 let deleteNodeAndRelations = function(id) {
   check(id, Match.OneOf(String, Match.Integer));
   let force = true; // Delete relationships as well
-  return db.delete(id, force);
+  try {
+    return db.delete(id, force);
+  } catch(e) {
+    if (e.code === 'Neo.ClientError.Statement.EntityNotFound') {
+      // node already delete
+    } else {
+      throw e;
+    }
+  }
 };
 
 let updateNode = function(nodeData) {
@@ -188,10 +203,12 @@ let getGithubApi = function(userId) {
 };
 
 let addOrUpdateContribution = function(userId, properties, repoId) {
+  properties.lastLoadedFromGithub = Date.now();
   let updateQuery = `match (u:User)-[rel:CONTRIBUTOR]->(r:Repository)
        where id(u) = ${userId}
          and id(r) = ${repoId}
-       set rel.contributions = ${properties.contributions}
+       set rel.contributions = ${properties.contributions},
+         rel.lastLoadedFromGithub = ${properties.lastLoadedFromGithub}
        return rel`;
   let ret = db.query(updateQuery);
   if (ret && ret.length > 0) {
@@ -203,6 +220,7 @@ let addOrUpdateContribution = function(userId, properties, repoId) {
 };
 
 let addOrUpdateContributor = function(contributorData) {
+  contributorData.lastLoadedFromGithub = Date.now();
   let data = db.find({login: contributorData.login}, 'User');
   if (data && data.length) {
     // Node found - update it by id

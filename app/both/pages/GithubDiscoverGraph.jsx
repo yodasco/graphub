@@ -183,10 +183,13 @@ let hideAndPruneNodes = function(centerNode) {
 let loadMore = function(node, context) {
   hideAndPruneNodes(node);
   Session.set('loading-minor', true);
+  let props = _.clone(context.props);
   if (IsRepo(node)) {
-    loadRepo(node.propertyMap.full_name, context);
+    props.startNode = node.propertyMap.full_name;
+    loadRepo(props, context);
   } else if (IsUser(node)) {
-    loadUser(node.propertyMap.login, context);
+    props.startNode = node.propertyMap.login;
+    loadUser(props, context);
   }
 };
 
