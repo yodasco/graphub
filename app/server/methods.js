@@ -112,16 +112,18 @@ Meteor.methods({
       updateNode(reducedRepo);
     });
     let contributors = gh.repos.getContributors({user, repo});
-    let withContributions = USER_ATTRIBUTES.concat(['contributions', 'login']);
-    contributors = contributors.map(function(contributor) {
-      let ret = pluckAttributes(contributor, withContributions);
-      ret.ghId = contributor.id;
-      return ret;
-    });
-    reducedRepo.contributors = contributors;
-    later(function() {
-      updateAndAddContributors(nodeId, contributors);
-    });
+    if (contributors && _.isArray(contributors)) {
+      let withContributions = USER_ATTRIBUTES.concat(['contributions', 'login']);
+      contributors = contributors.map(function(contributor) {
+        let ret = pluckAttributes(contributor, withContributions);
+        ret.ghId = contributor.id;
+        return ret;
+      });
+      reducedRepo.contributors = contributors;
+      later(function() {
+        updateAndAddContributors(nodeId, contributors);
+      });
+    }
     return reducedRepo;
   },
 });
@@ -137,10 +139,12 @@ let updateAndAddContributors = function(repoId, contributors) {
     let contributions = contributor.contributions;
     delete contributor.contributions;
     let contributorNode = addOrUpdateContributor(contributor);
-    let lastLoadedFromGithub = Date.now();
-    let rel = addOrUpdateContribution(contributorNode.id,
-                                      {contributions, lastLoadedFromGithub},
-                                      repoId);
+    if (contributorNode) {
+      let lastLoadedFromGithub = Date.now();
+      let rel = addOrUpdateContribution(contributorNode.id,
+                                        {contributions, lastLoadedFromGithub},
+                                        repoId);
+    }
   });
 };
 
@@ -167,7 +171,7 @@ let updateNode = function(nodeData) {
 };
 
 const USER_ATTRIBUTES = ['created_at', 'avatar_url', 'bio', 'blog', 'company', 'email',
-  'followers', 'hireable', 'html_url', 'location', 'name',
+  'followers', 'following', 'hireable', 'html_url', 'location', 'name',
   'public_gists', 'public_repos', 'type'];
 const REPO_ATTRIBUTES = ['created_at', 'default_branch', 'description', 'fork',
   'forks_count', 'homepage', 'html_url', 'language', 'name', 'network_count',

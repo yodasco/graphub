@@ -83,6 +83,9 @@ let getTooltipForNode = function(node) {
     if (pmap.blog) {
       html.push(`<div class='blog'><i class="fa fa-rss"></i> ${escapeHtml(pmap.blog)}</div>`);
     }
+    if (pmap.followers) {
+      html.push(`<div class='followers'><i class="fa fa-users"></i> ${escapeHtml(pmap.followers)}</div>`);
+    }
   }
   return html.join('');
 };
