@@ -74,7 +74,7 @@ Meteor.methods({
       reducedUser.lastLoadedFromGithub = Date.now();
       later(function() {
         updateNode(reducedUser);
-        addUserRepos(reducedUser);
+        addUserRepos(reducedUser, gh);
       });
       return reducedUser;
     }
@@ -141,22 +141,49 @@ let getContributorsDataFromGhResult = function(ghContributors) {
 };
 
 let loadMorePagedContributors = function(metaLink, repoNodeId, gh) {
-  while (metaLink) {
-    console.log(metaLink);
-    if (gh.hasNextPage(metaLink)) {
-      let ghContributors = gh.getNextPage(metaLink);
-      let contributors = getContributorsDataFromGhResult(ghContributors);
-      metaLink = ghContributors.meta.link; // The link to the next page, if any
-      updateAndAddContributors(repoNodeId, contributors);
-    } else {
-      metaLink = null;
+  while (gh.hasNextPage(metaLink)) {
+    let ghContributors = gh.getNextPage(metaLink);
+    let contributors = getContributorsDataFromGhResult(ghContributors);
+    metaLink = ghContributors.meta.link; // The link to the next page, if any
+    updateAndAddContributors(repoNodeId, contributors);
+  }
+};
+
+let addUserRepos = function(user, gh) {
+  let userNodeId = user.id;
+  let userRepos = gh.repos.getFromUser({
+    user: user.login,
+    sort: 'pushed',
+    type: 'all'
+  });
+  if (userRepos) {
+    let metaLink = userRepos.meta.link;
+    addUserReposFromArray(userRepos, userNodeId);
+    while (gh.hasNextPage(metaLink)) {
+      let userRepos = gh.getNextPage(metaLink);
+      metaLink = userRepos.meta.link;
+      addUserReposFromArray(userRepos, userNodeId);
     }
   }
 };
 
-let addUserRepos = function(user) {
-  // TODO
+
+let addUserReposFromArray = function(userRepos, userNodeId) {
+  userRepos.forEach(function(repo) {
+    let reducedRepo = pluckAttributes(repo, REPO_ATTRIBUTES);
+    reducedRepo.ghId = repo.id;
+    delete reducedRepo.id;
+    reducedRepo['full_name'] = repo['full_name'];
+    let repoNode = addOrUpdateRepo(reducedRepo);
+    if (repoNode) {
+      let lastLoadedFromGithub = Date.now();
+      let rel = addOrUpdateMembership(userNodeId,
+                                     {},
+                                      repoNode.id);
+    }
+  });
 };
+
 
 let updateAndAddContributors = function(repoId, contributors) {
   check(repoId, Match.OneOf(String, Match.Integer));
@@ -166,9 +193,8 @@ let updateAndAddContributors = function(repoId, contributors) {
     delete contributor.contributions;
     let contributorNode = addOrUpdateContributor(contributor);
     if (contributorNode) {
-      let lastLoadedFromGithub = Date.now();
       let rel = addOrUpdateContribution(contributorNode.id,
-                                        {contributions, lastLoadedFromGithub},
+                                        {contributions},
                                         repoId);
     }
   });
@@ -230,7 +256,7 @@ let getGithubApi = function(userId) {
 
   return {
     user: Async.wrap(github.user, ['getFrom']),
-    repos: Async.wrap(github.repos, ['get', 'getContributors']),
+    repos: Async.wrap(github.repos, ['get', 'getContributors', 'getFromUser']),
     getNextPage: Async.wrap(github, 'getNextPage'),
     hasNextPage: github.hasNextPage,
   };
@@ -253,6 +279,22 @@ let addOrUpdateContribution = function(userId, properties, repoId) {
   return db.relate(userId, 'CONTRIBUTOR', repoId, properties);
 };
 
+let addOrUpdateMembership = function(userId, properties, repoId) {
+  properties.lastLoadedFromGithub = Date.now();
+  let updateQuery = `match (u:User)-[rel:MEMBER]->(r:Repository)
+       where id(u) = ${userId}
+         and id(r) = ${repoId}
+       set rel.lastLoadedFromGithub = ${properties.lastLoadedFromGithub}
+       return rel`;
+  let ret = db.query(updateQuery);
+  if (ret && ret.length > 0) {
+    // relationship already exists. Return it
+    return ret[0];
+  }
+  // Create relationship
+  return db.relate(userId, 'MEMBER', repoId, properties);
+};
+
 let addOrUpdateContributor = function(contributorData) {
   contributorData.lastLoadedFromGithub = Date.now();
   let data = db.find({login: contributorData.login}, 'User');
@@ -264,6 +306,19 @@ let addOrUpdateContributor = function(contributorData) {
   } else {
     // Node not found - create it (saving without an ID creates a node)
     return db.save(contributorData, 'User');
+  }
+};
+
+let addOrUpdateRepo = function(repoData) {
+  let data = db.find({'full_name': repoData['full_name']}, 'Repository');
+  if (data && data.length) {
+    // Node found - update it by id
+    repoData.id = data[0].id;
+    db.save(repoData);
+    return repoData;
+  } else {
+    // Node not found - create it (saving without an ID creates a node)
+    return db.save(repoData, 'Repository');
   }
 };
 
