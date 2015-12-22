@@ -56,6 +56,7 @@ let enrichRepo = function(node, graph) {
 
 // A week
 const REFRESH_TIME_MILLI = 1000 * 60 * 60 * 24 * 7;
+// const REFRESH_TIME_MILLI = 1000 * 60 * 60;
 
 let needsRefresh = function(node) {
   if (node.propertyMap.lastLoadedFromGithub &&

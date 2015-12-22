@@ -51,7 +51,7 @@ https://gitgossip.com/top
 
 http://www.remwebdevelopment.com/blog/sql/some-basic-and-useful-cypher-queries-for-neo4j-201.html
 
-// Just for development...
-MATCH (u1:User {login: 'gsliepen'}), (u2:User {login: 'Rumko'}),
-  p = shortestPath((u1)-[*]-(u2))
-RETURN p
+// Delete duplicate relationships for a given node
+match (u:User {login: 'dajac'})-[r]->(repo:Repository)
+with u, repo, type(r) as t, tail(collect(r)) as coll
+foreach(x in coll | delete x)

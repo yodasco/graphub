@@ -313,18 +313,22 @@ let addOrUpdateContributor = function(contributorData) {
     return updateNode(contributorData);
   } else {
     // Node not found - create it (saving without an ID creates a node)
-    try {
-      return db.save(contributorData, 'User');
-    } catch(e) {
-      if (e.message) {
-        e.message = JSON.parse(e.message);
-        if (e.message && e.message.cause &&
-            e.message.cause.exception === 'ConstraintViolationException') {
-          // guard agains two or more concurrent insertions of the same node
-          // OK
-        } else {
-          throw e;
-        }
+    saveIgnoreConstraintViolationException(contributorData, 'User');
+  }
+};
+
+let saveIgnoreConstraintViolationException = function(data, label) {
+  try {
+    return db.save(data, label);
+  } catch(e) {
+    if (e.message) {
+      e.message = JSON.parse(e.message);
+      if (e.message && e.message.cause &&
+          e.message.cause.exception === 'ConstraintViolationException') {
+        // guard agains two or more concurrent insertions of the same node
+        // OK
+      } else {
+        throw e;
       }
     }
   }
@@ -338,20 +342,7 @@ let addOrUpdateRepo = function(repoData) {
     return updateNode(repoData);
   } else {
     // Node not found - create it (saving without an ID creates a node)
-    try {
-      return db.save(repoData, 'Repository');
-    } catch(e) {
-      if (e.message) {
-        e.message = JSON.parse(e.message);
-        if (e.message && e.message.cause &&
-            e.message.cause.exception === 'ConstraintViolationException') {
-          // guard agains two or more concurrent insertions of the same node
-          // OK
-        } else {
-          throw e;
-        }
-      }
-    }
+    saveIgnoreConstraintViolationException(repoData, 'Repository');
   }
 };
 
