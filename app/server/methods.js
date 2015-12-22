@@ -28,6 +28,16 @@ Meteor.methods({
                  RETURN p limit 5`;
     return runNeo4jQuery(query);
   },
+  getCoopsForUser(login, limit) {
+    check(login, String);
+    check(limit, Match.Integer);
+    let query = `match (me:User {login: '${login}'})-[rel1:MEMBER|CONTRIBUTOR]->
+        (repo:Repository)<-[rel2:MEMBER|CONTRIBUTOR]-(u:User)
+        where id(u) <> id(me)
+        return * limit ${limit}`;
+    return runNeo4jQuery(query);
+  },
+
   discoverUser(user, what, limit) {
     console.log({discoverUser: user});
     check(user, String);

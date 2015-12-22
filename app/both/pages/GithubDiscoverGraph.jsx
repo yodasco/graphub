@@ -57,9 +57,7 @@ GithubDiscoverGraph = React.createClass({
     let startNodeChanged = nextProps.startNode !== currentProps.startNode;
     let limitChanged = nextProps.limit !== currentProps.limit;
     if (startNodeChanged || limitChanged) {
-      setTimeout(function() {
-        loadGraph(nextProps, context);
-      }, 100);
+      loadGraph(nextProps, context);
       return;
     }
     if (hasAdditions &&
@@ -127,61 +125,8 @@ let refreshGraph = function(graphs, loadedNodeName, context) {
   }
 };
 
-// disects the nodes into three circles. Circle one is all nodes direclty
-// connected ot the center node. - these nodes are to remain visible.
-// circle two is all nodes that are not visible, but are connected to visible nodes
-// these nodes will remain hidden.
-// circle three is all other nodes - these nodes are to be removed.
-let hideAndPruneNodes = function(centerNode) {
-  // First - clean up state
-  currentGraph.nodes().forEach(function(n) {
-    delete n.hidden;
-    n.fixed = false;
-  });
-  currentGraph.relationships().forEach(function(r) {
-    delete r.hidden;
-  });
-
-  // next, show the center node
-  centerNode.hidden = false;
-  centerNode.fixed = true;
-
-  // next, iterate over all relations and mark all connected nodes as hidden
-  currentGraph.relationships().forEach(function(rel) {
-    if (rel.source.id === centerNode.id || rel.target.id === centerNode.id) {
-      rel.hidden = rel.source.hidden = rel.target.hidden = false;
-    }
-  });
-
-  // Next, iterate over all relations and if we find a node that's not visible,
-  // but connected to another node that is visible - mark it as hidden.
-  currentGraph.relationships().forEach(function(rel) {
-    if (rel.source.hidden === false && (_.isUndefined(rel.target.hidden) || rel.target.hidden)) {
-      rel.hidden = rel.target.hidden = true;
-    }
-    if (rel.target.hidden === false && (_.isUndefined(rel.source.hidden) || rel.source.hidden)) {
-      rel.hidden = rel.source.hidden = true;
-    }
-    // prune the rel
-    if ((rel.source.hidden === true || _.isUndefined(rel.source.hidden)) &&
-        (rel.target.hidden === true || _.isUndefined(rel.target.hidden))) {
-      delete currentGraph.relationshipMap[rel.id];
-    }
-  });
-
-  // prune all nodes that aren't vislbe or hidden
-  currentGraph.nodes().forEach(function(node) {
-    if (_.isUndefined(node.hidden)) {
-      delete currentGraph.nodeMap[node.id];
-    }
-  });
-
-  currentGraph._nodes = _.values(currentGraph.nodeMap);
-  currentGraph._relationships = _.values(currentGraph.relationshipMap);
-};
-
 let loadMore = function(node, context) {
-  hideAndPruneNodes(node);
+  PruneGraph(currentGraph, node, 1, 1);
   Session.set('loading-minor', true);
   let props = _.clone(context.props);
   if (IsRepo(node)) {

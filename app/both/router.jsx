@@ -7,6 +7,7 @@ Reaktor.init(
   <Router>
     <Route path="/" content={Home} layout={MainLayout} />
     <Route path="/discover" content={Discover} layout={MainLayout} />
+    <Route path="/coop" content={Coop} layout={MainLayout} />
     <Route path="/about" content={About} layout={MainLayout} />
   </Router>
 );
