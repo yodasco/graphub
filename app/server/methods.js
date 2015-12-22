@@ -316,7 +316,16 @@ let addOrUpdateContributor = function(contributorData) {
     return updateNode(contributorData);
   } else {
     // Node not found - create it (saving without an ID creates a node)
-    return db.save(contributorData, 'User');
+    try {
+      return db.save(contributorData, 'User');
+    } catch(e) {
+      if (e.cause && e.cause.exception === 'ConstraintViolationException') {
+        // guard agains two or more concurrent insertions of the same node
+        // OK
+      } else {
+        throw e;
+      }
+    }
   }
 };
 
