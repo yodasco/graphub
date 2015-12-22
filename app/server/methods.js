@@ -112,15 +112,21 @@ Meteor.methods({
     later(function() {
       updateNode(reducedRepo);
     });
-    let contributors = gh.repos.getContributors({user, repo});
-    if (contributors && _.isArray(contributors)) {
-      let metaLink = contributors.meta.link; // The link to the next page, if any
-      contributors = getContributorsDataFromGhResult(contributors);
-      reducedRepo.contributors = contributors;
-      later(function() {
-        updateAndAddContributors(nodeId, contributors);
-        loadMorePagedContributors(metaLink, nodeId, gh);
-      });
+    if (!reducedRepo.fork) {
+      // When repo is a fork - we can't tell for sure wheather the contribution
+      // was to this fork or the forkee.
+      // therefore - we do not relate contributors to the forked repo. Most
+      // chances these "contributors" aren't even aware of this forked repo.
+      let contributors = gh.repos.getContributors({user, repo});
+      if (contributors && _.isArray(contributors)) {
+        let metaLink = contributors.meta.link; // The link to the next page, if any
+        contributors = getContributorsDataFromGhResult(contributors);
+        reducedRepo.contributors = contributors;
+        later(function() {
+          updateAndAddContributors(nodeId, contributors);
+          loadMorePagedContributors(metaLink, nodeId, gh);
+        });
+      }
     }
     return reducedRepo;
   },
@@ -176,7 +182,6 @@ let addUserReposFromArray = function(userRepos, userNodeId) {
     reducedRepo['full_name'] = repo['full_name'];
     let repoNode = addOrUpdateRepo(reducedRepo);
     if (repoNode) {
-      let lastLoadedFromGithub = Date.now();
       let rel = addOrUpdateMembership(userNodeId,
                                      {},
                                       repoNode.id);
@@ -275,36 +280,28 @@ let getGithubApi = function(userId) {
 };
 
 let addOrUpdateContribution = function(userId, properties, repoId) {
-  properties.lastLoadedFromGithub = Date.now();
-  let updateQuery = `match (u:User)-[rel:CONTRIBUTOR]->(r:Repository)
-       where id(u) = ${userId}
-         and id(r) = ${repoId}
-       set rel.contributions = ${properties.contributions},
-         rel.lastLoadedFromGithub = ${properties.lastLoadedFromGithub}
-       return rel`;
-  let ret = db.query(updateQuery);
-  if (ret && ret.length > 0) {
-    // relationship already exists. Return it
-    return ret[0];
-  }
-  // Create relationship
-  return db.relate(userId, 'CONTRIBUTOR', repoId, properties);
+  let lastLoadedFromGithub = Date.now();
+  let query = `match (u:User), (r:Repository)
+    where id(u) = ${userId}
+      and id(r) = ${repoId}
+    merge (u)-[rel:CONTRIBUTOR]->(r)
+    set rel.lastLoadedFromGithub = ${lastLoadedFromGithub},
+      rel.contributions = ${properties.contributions}
+    return rel`;
+  let ret = db.query(query);
+  return ret && ret.length && ret[0];
 };
 
 let addOrUpdateMembership = function(userId, properties, repoId) {
-  properties.lastLoadedFromGithub = Date.now();
-  let updateQuery = `match (u:User)-[rel:MEMBER]->(r:Repository)
-       where id(u) = ${userId}
-         and id(r) = ${repoId}
-       set rel.lastLoadedFromGithub = ${properties.lastLoadedFromGithub}
-       return rel`;
-  let ret = db.query(updateQuery);
-  if (ret && ret.length > 0) {
-    // relationship already exists. Return it
-    return ret[0];
-  }
-  // Create relationship
-  return db.relate(userId, 'MEMBER', repoId, properties);
+  let lastLoadedFromGithub = Date.now();
+  let query = `match (u:User), (r:Repository)
+    where id(u) = ${userId}
+      and id(r) = ${repoId}
+    merge (u)-[rel:MEMBER]->(r)
+    set rel.lastLoadedFromGithub = ${lastLoadedFromGithub}
+    return rel`;
+  let ret = db.query(query);
+  return ret && ret.length && ret[0];
 };
 
 let addOrUpdateContributor = function(contributorData) {
@@ -319,11 +316,15 @@ let addOrUpdateContributor = function(contributorData) {
     try {
       return db.save(contributorData, 'User');
     } catch(e) {
-      if (e.cause && e.cause.exception === 'ConstraintViolationException') {
-        // guard agains two or more concurrent insertions of the same node
-        // OK
-      } else {
-        throw e;
+      if (e.message) {
+        e.message = JSON.parse(e.message);
+        if (e.message && e.message.cause &&
+            e.message.cause.exception === 'ConstraintViolationException') {
+          // guard agains two or more concurrent insertions of the same node
+          // OK
+        } else {
+          throw e;
+        }
       }
     }
   }
@@ -340,11 +341,15 @@ let addOrUpdateRepo = function(repoData) {
     try {
       return db.save(repoData, 'Repository');
     } catch(e) {
-      if (e.cause && e.cause.exception === 'ConstraintViolationException') {
-        // guard agains two or more concurrent insertions of the same node
-        // OK
-      } else {
-        throw e;
+      if (e.message) {
+        e.message = JSON.parse(e.message);
+        if (e.message && e.message.cause &&
+            e.message.cause.exception === 'ConstraintViolationException') {
+          // guard agains two or more concurrent insertions of the same node
+          // OK
+        } else {
+          throw e;
+        }
       }
     }
   }
