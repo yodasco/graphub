@@ -75,4 +75,5 @@ let renderGraphs = function(graphs, user1, user2) {
   let view =  new neo.graphView($('#graph svg')[0], g, new neo.style());
   neo.setupTooltip(view);
   view.update();
+  GithubEnrichGraph(g);
 };
