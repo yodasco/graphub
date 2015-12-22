@@ -25,7 +25,7 @@ Meteor.methods({
     let query = `MATCH (u1:User {login: '${user1}'}),
                        (u2:User {login: '${user2}'}),
                        p = allShortestPaths((u1)-[:CONTRIBUTOR|MEMBER*]-(u2))
-                 RETURN p limit 100`;
+                 RETURN p limit 5`;
     return runNeo4jQuery(query);
   },
   discoverUser(user, what, limit) {
@@ -218,9 +218,21 @@ let deleteNodeAndRelations = function(id) {
 let updateNode = function(nodeData) {
   check(nodeData, Object);
   check(nodeData.id, Match.OneOf(Match.Integer, String));
-  nodeData.id = parseInt(nodeData.id);
+  nodeData = _.clone(nodeData);
+  let nodeId = nodeData.id;
+  delete nodeData.id;
   removeNulls(nodeData);
-  return db.save(nodeData);
+  let setStatement = _.map(nodeData, function(v, k) {
+    if (_.isNumber(v) || _.isBoolean(v)) {
+      return `n.${k} = ${v}`;
+    } else {
+      v = v.replace(/'/g, '\\\'');
+      return `n.${k} = '${v}'`;
+    }
+  }).join(', ');
+  let query = `match (n) where id(n) = ${nodeId} set ${setStatement} return n`;
+  let ret = db.query(query);
+  return ret && ret.length > 0 && ret[0];
 };
 
 const USER_ATTRIBUTES = ['created_at', 'avatar_url', 'bio', 'blog', 'company', 'email',
@@ -301,8 +313,7 @@ let addOrUpdateContributor = function(contributorData) {
   if (data && data.length) {
     // Node found - update it by id
     contributorData.id = data[0].id;
-    db.save(contributorData);
-    return contributorData;
+    return updateNode(contributorData);
   } else {
     // Node not found - create it (saving without an ID creates a node)
     return db.save(contributorData, 'User');
@@ -314,8 +325,7 @@ let addOrUpdateRepo = function(repoData) {
   if (data && data.length) {
     // Node found - update it by id
     repoData.id = data[0].id;
-    db.save(repoData);
-    return repoData;
+    return updateNode(repoData);
   } else {
     // Node not found - create it (saving without an ID creates a node)
     return db.save(repoData, 'Repository');
