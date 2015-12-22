@@ -206,10 +206,10 @@ let deleteNodeAndRelations = function(id) {
   try {
     return db.delete(id, force);
   } catch(e) {
-    console.error(e);
     if (e.code === 'Neo.ClientError.Statement.EntityNotFound') {
       // node already delete
     } else {
+      console.error(e);
       throw e;
     }
   }
@@ -328,7 +328,16 @@ let addOrUpdateRepo = function(repoData) {
     return updateNode(repoData);
   } else {
     // Node not found - create it (saving without an ID creates a node)
-    return db.save(repoData, 'Repository');
+    try {
+      return db.save(repoData, 'Repository');
+    } catch(e) {
+      if (e.cause && e.cause.exception === 'ConstraintViolationException') {
+        // guard agains two or more concurrent insertions of the same node
+        // OK
+      } else {
+        throw e;
+      }
+    }
   }
 };
 
