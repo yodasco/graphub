@@ -74,6 +74,7 @@ Meteor.methods({
       reducedUser.lastLoadedFromGithub = Date.now();
       later(function() {
         updateNode(reducedUser);
+        addUserRepos(reducedUser);
       });
       return reducedUser;
     }
@@ -113,15 +114,12 @@ Meteor.methods({
     });
     let contributors = gh.repos.getContributors({user, repo});
     if (contributors && _.isArray(contributors)) {
-      let withContributions = USER_ATTRIBUTES.concat(['contributions', 'login']);
-      contributors = contributors.map(function(contributor) {
-        let ret = pluckAttributes(contributor, withContributions);
-        ret.ghId = contributor.id;
-        return ret;
-      });
+      let metaLink = contributors.meta.link; // The link to the next page, if any
+      contributors = getContributorsDataFromGhResult(contributors);
       reducedRepo.contributors = contributors;
       later(function() {
         updateAndAddContributors(nodeId, contributors);
+        loadMorePagedContributors(metaLink, nodeId, gh);
       });
     }
     return reducedRepo;
@@ -130,6 +128,34 @@ Meteor.methods({
 
 let later = function(func) {
   return Meteor.setTimeout(func, 0);
+};
+
+let getContributorsDataFromGhResult = function(ghContributors) {
+  let atts = USER_ATTRIBUTES.concat(['contributions', 'login']);
+  let contributors = ghContributors.map(function(contributor) {
+    let ret = pluckAttributes(contributor, atts);
+    ret.ghId = contributor.id;
+    return ret;
+  });
+  return contributors;
+};
+
+let loadMorePagedContributors = function(metaLink, repoNodeId, gh) {
+  while (metaLink) {
+    console.log(metaLink);
+    if (gh.hasNextPage(metaLink)) {
+      let ghContributors = gh.getNextPage(metaLink);
+      let contributors = getContributorsDataFromGhResult(ghContributors);
+      metaLink = ghContributors.meta.link; // The link to the next page, if any
+      updateAndAddContributors(repoNodeId, contributors);
+    } else {
+      metaLink = null;
+    }
+  }
+};
+
+let addUserRepos = function(user) {
+  // TODO
 };
 
 let updateAndAddContributors = function(repoId, contributors) {
@@ -154,6 +180,7 @@ let deleteNodeAndRelations = function(id) {
   try {
     return db.delete(id, force);
   } catch(e) {
+    console.error(e);
     if (e.code === 'Neo.ClientError.Statement.EntityNotFound') {
       // node already delete
     } else {
@@ -201,9 +228,12 @@ let getGithubApi = function(userId) {
     token: user.services.github.accessToken
   });
 
-  let wrappedUserApi = Async.wrap(github.user, ['getFrom']);
-  let wrappedReposApi = Async.wrap(github.repos, ['get', 'getContributors']);
-  return {user: wrappedUserApi, repos: wrappedReposApi};
+  return {
+    user: Async.wrap(github.user, ['getFrom']),
+    repos: Async.wrap(github.repos, ['get', 'getContributors']),
+    getNextPage: Async.wrap(github, 'getNextPage'),
+    hasNextPage: github.hasNextPage,
+  };
 };
 
 let addOrUpdateContribution = function(userId, properties, repoId) {
