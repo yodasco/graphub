@@ -78,6 +78,7 @@ let CoopGraph = React.createClass({
     }
     return (
       <div id='CoopGraph' className='center-block text-center'>
+        <h3>GitHub users who cooperated with <code>{this.state.login}</code> on various projects</h3>
         <div id='graph'>
           <svg></svg>
         </div>
@@ -96,10 +97,12 @@ let CoopGraph = React.createClass({
       loadGraph(nextProps, context);
       return;
     }
+    this.setState({login: nextProps.startNode});
   },
   getInitialState() {
     return {
       loading: false,
+      login: '...'
     };
   },
 });
@@ -151,6 +154,7 @@ let loadMore = function(node, context) {
   PruneGraph(currentGraph, node, 2, 0);
   Session.set('loading-minor', true);
   let props = _.clone(context.props);
+  props.startNode = node.propertyMap.login;
   loadCoops(props, context);
 };
 
@@ -160,7 +164,7 @@ let loadCoops = function(props, context) {
   Meteor.call('getCoopsForUser', username, limit,
     (err, res)=> {
       Session.set('loading-minor', false);
-      context.setState({loading: false});
+      context.setState({loading: false, login: username});
       if (err) {
         console.error(err);
         return;
