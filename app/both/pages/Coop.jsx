@@ -155,19 +155,50 @@ let loadMore = function(node, context) {
 };
 
 let loadCoops = function(props, context) {
-  let username = props.startNode;
+  let login = props.startNode;
   let limit = props.limit;
-  Meteor.call('getCoopsForUser', username, limit,
+  Meteor.call('discoverUser', login, 'MEMBER|CONTRIBUTOR', limit,
     (err, res)=> {
-      Session.set('loading-minor', false);
       context.setState({loading: false});
       if (err) {
         console.error(err);
         return;
       }
       if (res) {
-        refreshGraph(res, username, context);
+        refreshGraph(res, login, context);
+        loadCoopsPhase2(res, login, context);
       }
     }
   );
+};
+
+let loadCoopsPhase2 = function(phase1Result, startNodeLogin, context) {
+  let login = context.props.startNode;
+  let limit = context.props.limit;
+  let reposLeft = 0;
+  Session.set('loading-minor', true);
+  phase1Result.forEach(function(graph) {
+    let nodes = graph.graph.nodes.map(neo.CypherGraphModel.convertNode());
+    nodes.forEach(function(node) {
+      if (IsRepo(node)) {
+        ++reposLeft;
+        let repo = node.propertyMap['full_name'];
+        Meteor.call('discoverRepo', repo, 'MEMBER|CONTRIBUTOR', limit, login,
+          (err, res)=> {
+            --reposLeft;
+            if (reposLeft === 0) {
+              Session.set('loading-minor', false);
+            }
+            if (err) {
+              console.error(err);
+              return;
+            }
+            if (res) {
+              refreshGraph(res, login, context);
+            }
+          }
+        );
+      }
+    });
+  });
 };

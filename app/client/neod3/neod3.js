@@ -1333,7 +1333,9 @@ neo.viz = function(el, measureSize, graph, style) {
     nodeGroups = container.select("g.layer.nodes").selectAll("g.node").data(nodes, function(d) {
       return d.id;
     });
-    nodeGroups.enter().append("g").attr("class", "node").call(force.drag).call(clickHandler).on('mouseover', onNodeMouseOver).on('mouseout', onNodeMouseOut);
+    nodeGroups.enter().append("g").attr("class", function(n) {
+      return 'node' + (IsRepo(n) ? ' repo' : ' user');
+    }).call(force.drag).call(clickHandler).on('mouseover', onNodeMouseOver).on('mouseout', onNodeMouseOut);
     nodeGroups.classed("selected", function(node) {
       return node.selected;
     });

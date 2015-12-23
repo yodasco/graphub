@@ -28,15 +28,15 @@ Meteor.methods({
                  RETURN p limit 5`;
     return runNeo4jQuery(query);
   },
-  getCoopsForUser(login, limit) {
-    check(login, String);
-    check(limit, Match.Integer);
-    let query = `match (me:User {login: '${login}'})-[rel1:MEMBER|CONTRIBUTOR]->
-        (repo:Repository)<-[rel2:MEMBER|CONTRIBUTOR]-(u:User)
-        where id(u) <> id(me)
-        return * limit ${limit}`;
-    return runNeo4jQuery(query);
-  },
+  // getCoopsForUser(login, limit) {
+  //   check(login, String);
+  //   check(limit, Match.Integer);
+  //   let query = `match (me:User {login: '${login}'})-[rel1:MEMBER|CONTRIBUTOR]->
+  //       (repo:Repository)<-[rel2:MEMBER|CONTRIBUTOR]-(u:User)
+  //       where id(u) <> id(me)
+  //       return * limit ${limit}`;
+  //   return runNeo4jQuery(query);
+  // },
 
   discoverUser(user, what, limit) {
     console.log({discoverUser: user});
@@ -48,13 +48,16 @@ Meteor.methods({
                  return * limit ${limit}`;
     return runNeo4jQuery(query);
   },
-  discoverRepo(repoName, what, limit) {
+  discoverRepo(repoName, what, limit, excludedUser) {
     console.log({discoverRepo: repoName});
     check(repoName, String);
     checkWhat(what);
     check(limit, Match.Integer);
+    check(excludedUser, Match.Optional(String));
     limit = Math.min(limit, 100);
+    let excludePhrase = excludedUser ? `where n.login <> '${excludedUser}'` : '';
     let query = `MATCH (r:Repository {full_name: '${repoName}'})-[rel:${what}]-(n)
+                ${excludePhrase}
                  return * limit ${limit}`;
     return runNeo4jQuery(query);
   },
