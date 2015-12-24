@@ -43,6 +43,8 @@ Coop = React.createClass({
         currentUser: user,
         startNode
       };
+    } else {
+      return {};
     }
   },
   getInitialState() {
