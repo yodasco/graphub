@@ -139,7 +139,7 @@ def add_user(user):
   add_properties(user_node, user, ['name', 'company', 'location', 'blog',
                  'email', 'gravatar_id', 'type', 'avatar_url', 'html_url',
                  'site_admin'])
-  user_node.properties['ghId'] = user.get('id';
+  user_node.properties['ghId'] = user.get('id')
   return user_node
 
 def get_user(login):
@@ -362,7 +362,7 @@ def load_from_date(date):
                                  'last_processed_date')
         status.properties['date'] = h
         status.push()
-
+        date = h
     hours_to_sleep = 2
     print 'DONE until today %s   will sleep for %d hours...' % (today, hours_to_sleep)
     sleep(60 * 60 * hours_to_sleep)
