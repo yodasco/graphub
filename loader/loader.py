@@ -322,7 +322,7 @@ def get_pull_request(pr_id):
 def generate_hours(from_date, until_date):
   h = from_date
   while h < until_date:
-    yield h.strftime('%Y-%m-%d-') + '{0:d}'.format(h.hour)
+    yield h, h.strftime('%Y-%m-%d-') + '{0:d}'.format(h.hour)
     h += datetime.timedelta(hours=1)
 
 def download_and_load_hour(hour_string):
@@ -343,7 +343,8 @@ def download_and_load_hour(hour_string):
 @timeit
 def download_hour(hour_string):
   file_name = 'http://data.githubarchive.org/%s.json.gz' % hour_string
-  response = urllib2.urlopen(file_name)
+  try:
+    response = urllib2.urlopen(file_name)
   if response.code != 200:
     print '!!! Error downloading file %s' % file_name
     print 'Response code: %d' % response.code
@@ -354,15 +355,15 @@ def download_hour(hour_string):
 def load_from_date(date):
   while True:
     today = datetime.datetime.today()
-    for h in generate_hours(date, today):
-      print "=== Loading:  ", h
-      loaded = download_and_load_hour(h)
+    for (time, formatted_time) in generate_hours(date, today):
+      print "=== Loading:  ", formatted_time
+      loaded = download_and_load_hour(formatted_time)
       if loaded:
         status = graph.merge_one('ProcessingStatus', 'last_processed_date',
                                  'last_processed_date')
-        status.properties['date'] = h
+        status.properties['date'] = formatted_time
         status.push()
-        date = h
+        date = time
     hours_to_sleep = 2
     print 'DONE until today %s   will sleep for %d hours...' % (today, hours_to_sleep)
     sleep(60 * 60 * hours_to_sleep)
