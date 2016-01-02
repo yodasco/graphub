@@ -343,8 +343,7 @@ def download_and_load_hour(hour_string):
 @timeit
 def download_hour(hour_string):
   file_name = 'http://data.githubarchive.org/%s.json.gz' % hour_string
-  try:
-    response = urllib2.urlopen(file_name)
+  response = urllib2.urlopen(file_name)
   if response.code != 200:
     print '!!! Error downloading file %s' % file_name
     print 'Response code: %d' % response.code
