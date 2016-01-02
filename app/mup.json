@@ -4,9 +4,7 @@
     {
       "host": "graphub.yodas.com",
       "username": "ubuntu",
-      // "password": "password"
-      // or pem file (ssh based authentication)
-      "pem": "~/.ssh/us-east-1-yodas.pem"
+      "pem": "~/.ssh/us-west-2-yodas-com.pem"
     }
   ],
 

@@ -8,4 +8,4 @@ deploy-app:
 	rm settings.json;
 
 deploy-loader:
-	cd loader; scp {loader.py,load-data.sh} neo4j.us-east-1.aws.yodas.com:/home/ubuntu/graphub/
+	cd loader; scp {loader.py,load-data.sh} neo4j.us-west-2.aws.yodas.com:/home/ubuntu/graphub/
