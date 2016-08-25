@@ -17,7 +17,9 @@ GithubGraph = React.createClass({
         </div>
       );
     }
-    let distance = this.state.queryResult[0].graph.relationships.length / 2;
+    let distance = this.state.queryResult[0] ?
+        this.state.queryResult[0].graph.relationships.length / 2
+        : Infinity;
     return (
       <div className='center-block text-center'>
         <h4>The shortest path between <code>{this.props.user1}</code> and <code>{this.props.user2}</code> is <code><strong>{distance}</strong></code></h4>
